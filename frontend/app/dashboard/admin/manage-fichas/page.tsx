@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
 
@@ -161,6 +162,7 @@ export default function ManageFichasPage() {
                                     <td className="py-3 px-4 space-x-2">
                                         <button onClick={() => handleOpenModal(ficha)} className="text-yellow-400 hover:text-yellow-300">Editar</button>
                                         <button onClick={() => handleDelete(ficha.id)} className="text-red-500 hover:text-red-400">Eliminar</button>
+                                        <Link href={`/dashboard/fichas/${ficha.id}/report`} className="text-blue-400 hover:text-blue-300">Reporte</Link>
                                     </td>
                                 </tr>
                             ))}

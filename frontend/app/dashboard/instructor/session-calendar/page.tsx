@@ -54,7 +54,8 @@ export default function SessionCalendarPage() {
     const getSessionsForDay = (day) => {
         return sessions.filter(session => {
             const sessionDate = new Date(session.date);
-            return sessionDate.toDateString() === day.toDateString();
+            const adjustedSessionDate = new Date(sessionDate.getUTCFullYear(), sessionDate.getUTCMonth(), sessionDate.getUTCDate());
+            return adjustedSessionDate.toDateString() === day.toDateString();
         });
     };
 

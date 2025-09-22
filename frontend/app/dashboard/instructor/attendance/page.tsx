@@ -155,7 +155,15 @@ export default function TakeAttendancePage() {
             formData.append('image', blob, 'capture.jpg');
             try {
                 const response = await api.post('face/recognize/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-                setRecognitionStatus(`Resultado: ${response.data.message || 'No se reconoció a nadie nuevo.'}`);
+                
+                if (response.data.recognized_students && response.data.recognized_students.length > 0) {
+                    const recognizedNames = response.data.recognized_students.map(s => s.full_name).join(', ');
+                    alert(`¡Bienvenido(a), ${recognizedNames}! Asistencia registrada.`);
+                    setRecognitionStatus(`Reconocido: ${recognizedNames}`);
+                } else {
+                    setRecognitionStatus('No se reconoció a nadie nuevo.');
+                }
+
                 fetchAttendanceLog();
             } catch (error) {
                 setRecognitionStatus(`Error: ${error.response?.data?.error || 'Fallo en el reconocimiento'}`);

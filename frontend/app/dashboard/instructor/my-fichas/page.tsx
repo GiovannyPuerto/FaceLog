@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
 
@@ -66,17 +67,21 @@ export default function MyFichasPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {fichas.length > 0 ? (
                     fichas.map(ficha => (
-                        <div key={ficha.id} className="bg-gray-800 shadow-lg rounded-lg p-6 hover:bg-gray-700 transition-transform hover:-translate-y-1">
-                            <h2 className="text-xl font-bold text-blue-400">Ficha: {ficha.numero_ficha}</h2>
-                            <p className="text-gray-300 mt-2">{ficha.programa_formacion}</p>
-                            <div className="text-sm text-gray-400 mt-4">
-                                <p><strong>Jornada:</strong> {ficha.jornada}</p>
-                                <p><strong>Inicio:</strong> {new Date(ficha.fecha_inicio).toLocaleDateString('es-CO')}</p>
-                                <p><strong>Fin:</strong> {new Date(ficha.fecha_fin).toLocaleDateString('es-CO')}</p>
+                        <div key={ficha.id} className="bg-gray-800 shadow-lg rounded-lg p-6 hover:bg-gray-700 transition-transform hover:-translate-y-1 flex flex-col justify-between">
+                            <div>
+                                <h2 className="text-xl font-bold text-blue-400">Ficha: {ficha.numero_ficha}</h2>
+                                <p className="text-gray-300 mt-2">{ficha.programa_formacion}</p>
+                                <div className="text-sm text-gray-400 mt-4">
+                                    <p><strong>Jornada:</strong> {ficha.jornada}</p>
+                                    <p><strong>Inicio:</strong> {new Date(ficha.fecha_inicio).toLocaleDateString('es-CO')}</p>
+                                    <p><strong>Fin:</strong> {new Date(ficha.fecha_fin).toLocaleDateString('es-CO')}</p>
+                                </div>
+                                <div className="mt-4 pt-4 border-t border-gray-700">
+                                    <h3 className="text-md font-semibold text-gray-200">Aprendices: {ficha.students.length}</h3>
+                                </div>
                             </div>
-                            <div className="mt-4 pt-4 border-t border-gray-700">
-                                <h3 className="text-md font-semibold text-gray-200">Aprendices: {ficha.students.length}</h3>
-                                {/* We could add a link to a detailed view of the ficha here */}
+                            <div className="mt-4 pt-4 border-t border-gray-700 flex justify-end">
+                                <Link href={`/dashboard/fichas/${ficha.id}/report`} className="text-blue-400 hover:text-blue-300 font-semibold">Ver Reporte</Link>
                             </div>
                         </div>
                     ))

@@ -26,7 +26,7 @@ class FichaFilter(django_filters.FilterSet):
     """
     numero_ficha = django_filters.CharFilter(lookup_expr='icontains', label='Número de Ficha')
     programa_formacion = django_filters.CharFilter(lookup_expr='icontains', label='Programa de Formación')
-    instructor = django_filters.ModelChoiceFilter(queryset=User.objects.filter(role='instructor'), label='Instructor')
+    instructor = django_filters.ModelChoiceFilter(field_name='instructors', queryset=User.objects.filter(role='instructor'), label='Instructor')
 
     class Meta:
         model = Ficha

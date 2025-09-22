@@ -1,15 +1,14 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
 import api from '../../../lib/api';
 import useAuth from '../../../hooks/useAuth';
 
-// Simple Modal Component
+// Modal Component with theme support
 const Modal = ({ children, onClose }) => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
-        <div className="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md relative">
-            <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-white text-2xl">&times;</button>
+    <div className="modal-overlay">
+        <div className="modal-content">
+            <button onClick={onClose} className="modal-close-btn">&times;</button>
             {children}
         </div>
     </div>
@@ -101,96 +100,610 @@ export default function ProfilePage() {
 
     const isLoading = authLoading || loading;
 
-    if (isLoading) {
-        return <div className="text-center p-10">Cargando perfil...</div>;
-    }
-
-    if (error && !profile) {
-        return <div className="text-center p-10 text-red-500">Error: {error}</div>;
-    }
-
     return (
         <>
-            <div className="space-y-6 max-w-2xl mx-auto">
-                <h1 className="text-3xl font-bold text-white">Mi Perfil</h1>
-                
-                {profile && (
-                    <div className="bg-gray-800 shadow-lg rounded-lg p-8">
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                <div>
-                                    <label htmlFor="username" className="block text-sm font-medium text-gray-300">Nombre de Usuario</label>
-                                    <input type="text" name="username" id="username" defaultValue={profile.username} className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white" readOnly />
-                                </div>
-                                <div>
-                                    <label htmlFor="email" className="block text-sm font-medium text-gray-300">Email</label>
-                                    <input type="email" name="email" id="email" defaultValue={profile.email} className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white" required />
-                                </div>
-                                <div>
-                                    <label htmlFor="first_name" className="block text-sm font-medium text-gray-300">Nombre</label>
-                                    <input type="text" name="first_name" id="first_name" defaultValue={profile.first_name} className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white" />
-                                </div>
-                                <div>
-                                    <label htmlFor="last_name" className="block text-sm font-medium text-gray-300">Apellido</label>
-                                    <input type="text" name="last_name" id="last_name" defaultValue={profile.last_name} className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white" />
-                                </div>
-                                {profile.role === 'student' && (
-                                    <div>
-                                        <label htmlFor="student_id" className="block text-sm font-medium text-gray-300">ID de Estudiante</label>
-                                        <input type="text" name="student_id" id="student_id" defaultValue={profile.student_id || ''} className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white" />
+            <style jsx global>{`
+                :root {
+                    --bg-primary: #f8f9fa;
+                    --bg-card: #ffffff;
+                    --bg-secondary: #e9ecef;
+                    --bg-readonly: #f8f9fa;
+                    --text-primary: #232129ff;
+                    --text-secondary: #6c757d;
+                    --text-muted: #8b949e;
+                    --text-success: #28a745;
+                    --text-error: #dc3545;
+                    --border-color: #e9ecef;
+                    --button-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    --button-hover: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+                    --button-secondary: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+                    --button-secondary-hover: linear-gradient(135deg, #5a6268 0%, #343a40 100%);
+                    --button-success: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                    --button-success-hover: linear-gradient(135deg, #1e7e34 0%, #17a2b8 100%);
+                    --shadow-card: 0 8px 25px rgba(0, 0, 0, 0.08);
+                    --shadow-hover: 0 12px 35px rgba(0, 0, 0, 0.12);
+                    --input-bg: #ffffff;
+                    --input-border: #e9ecef;
+                    --input-focus: #667eea;
+                    --divider-color: #e9ecef;
+                }
+
+                [data-theme="dark"] {
+                    --bg-primary: #0d1117;
+                    --bg-card: #161b22;
+                    --bg-secondary: #21262d;
+                    --bg-readonly: #21262d;
+                    --text-primary: #f0f6fc;
+                    --text-secondary: #8b949e;
+                    --text-muted: #6e7681;
+                    --text-success: #2ea043;
+                    --text-error: #f85149;
+                    --border-color: #30363d;
+                    --button-gradient: linear-gradient(135deg, #58a6ff 0%, #1f6feb 100%);
+                    --button-hover: linear-gradient(135deg, #4493f8 0%, #1b5fc1 100%);
+                    --button-secondary: linear-gradient(135deg, #6e7681 0%, #484f58 100%);
+                    --button-secondary-hover: linear-gradient(135deg, #656d76 0%, #373e47 100%);
+                    --button-success: linear-gradient(135deg, #2ea043 0%, #238636 100%);
+                    --button-success-hover: linear-gradient(135deg, #2d8f3f 0%, #1f6929 100%);
+                    --shadow-card: 0 8px 25px rgba(0, 0, 0, 0.3);
+                    --shadow-hover: 0 12px 35px rgba(0, 0, 0, 0.4);
+                    --input-bg: #21262d;
+                    --input-border: #30363d;
+                    --input-focus: #58a6ff;
+                    --divider-color: #30363d;
+                }
+
+                body {
+                    background: var(--bg-primary);
+                    color: var(--text-primary);
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+                    transition: all 0.3s ease;
+                    min-height: 100vh;
+                }
+
+                .profile-container {
+                    background: var(--bg-primary);
+                    min-height: 100vh;
+                    padding: 30px 20px;
+                    transition: background-color 0.3s ease;
+                }
+
+                .profile-wrapper {
+                    max-width: 800px;
+                    margin: 0 auto;
+                }
+
+                .modern-title {
+                    color: var(--text-primary);
+                    font-weight: 800;
+                    font-size: 2.5rem;
+                    margin-bottom: 2rem;
+                    position: relative;
+                    background: var(--button-gradient);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                }
+
+                .modern-title::after {
+                    content: '';
+                    position: absolute;
+                    bottom: -15px;
+                    left: 0;
+                    width: 120px;
+                    height: 5px;
+                    background: var(--button-gradient);
+                    border-radius: 3px;
+                }
+
+                .profile-card {
+                    background: var(--bg-card);
+                    border: 2px solid var(--border-color);
+                    border-radius: 20px;
+                    box-shadow: var(--shadow-card);
+                    transition: all 0.3s ease;
+                    overflow: hidden;
+                    position: relative;
+                }
+
+                .profile-card::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 4px;
+                    background: var(--button-gradient);
+                }
+
+                .profile-form {
+                    padding: 2rem;
+                }
+
+                .form-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 1.5rem;
+                    margin-bottom: 2rem;
+                }
+
+                .form-group {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .form-label {
+                    color: var(--text-secondary);
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                    margin-bottom: 0.5rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+
+                .form-input {
+                    background: var(--input-bg);
+                    border: 2px solid var(--input-border);
+                    border-radius: 12px;
+                    padding: 12px 16px;
+                    color: var(--text-primary);
+                    font-size: 1rem;
+                    transition: all 0.3s ease;
+                }
+
+                .form-input:focus {
+                    outline: none;
+                    border-color: var(--input-focus);
+                    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+                    transform: translateY(-1px);
+                }
+
+                .form-input:read-only {
+                    background: var(--bg-readonly);
+                    cursor: not-allowed;
+                    opacity: 0.7;
+                }
+
+                .readonly-field {
+                    background: var(--bg-readonly);
+                    border: 2px solid var(--input-border);
+                    border-radius: 12px;
+                    padding: 12px 16px;
+                    color: var(--text-primary);
+                    font-size: 1rem;
+                    text-transform: capitalize;
+                }
+
+                .form-actions {
+                    border-top: 2px solid var(--divider-color);
+                    padding-top: 1.5rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    flex-wrap: wrap;
+                    gap: 1rem;
+                }
+
+                .modern-button {
+                    background: var(--button-gradient);
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 24px;
+                    color: white;
+                    font-weight: 700;
+                    font-size: 1rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+
+                .modern-button:hover {
+                    background: var(--button-hover);
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+                }
+
+                .secondary-button {
+                    background: var(--button-secondary);
+                }
+
+                .secondary-button:hover {
+                    background: var(--button-secondary-hover);
+                }
+
+                .success-button {
+                    background: var(--button-success);
+                }
+
+                .success-button:hover {
+                    background: var(--button-success-hover);
+                }
+
+                .message-container {
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                }
+
+                .success-message {
+                    color: var(--text-success);
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+
+                .error-message {
+                    color: var(--text-error);
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                }
+
+                .loading-container, .error-container {
+                    text-align: center;
+                    padding: 4rem 2rem;
+                    background: var(--bg-card);
+                    border-radius: 20px;
+                    border: 2px solid var(--border-color);
+                    box-shadow: var(--shadow-card);
+                    margin: 2rem 0;
+                }
+
+                .loading-text, .error-text {
+                    color: var(--text-secondary);
+                    font-size: 1.2rem;
+                    font-weight: 600;
+                    margin-top: 1rem;
+                }
+
+                .error-text {
+                    color: var(--text-error);
+                }
+
+                .loading-icon, .error-icon {
+                    font-size: 4rem;
+                    margin-bottom: 1rem;
+                }
+
+                /* Modal Styles */
+                .modal-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0, 0, 0, 0.7);
+                    z-index: 9999;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 1rem;
+                    backdrop-filter: blur(5px);
+                }
+
+                .modal-content {
+                    background: var(--bg-card);
+                    padding: 2rem;
+                    border-radius: 20px;
+                    box-shadow: var(--shadow-hover);
+                    border: 2px solid var(--border-color);
+                    width: 100%;
+                    max-width: 500px;
+                    position: relative;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                }
+
+                .modal-close-btn {
+                    position: absolute;
+                    top: 1rem;
+                    right: 1rem;
+                    background: none;
+                    border: none;
+                    color: var(--text-secondary);
+                    font-size: 2rem;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .modal-close-btn:hover {
+                    background: var(--bg-secondary);
+                    color: var(--text-primary);
+                }
+
+                .modal-title {
+                    color: var(--text-primary);
+                    font-weight: 700;
+                    font-size: 1.5rem;
+                    margin-bottom: 1.5rem;
+                }
+
+                .modal-form {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                }
+
+                .modal-actions {
+                    display: flex;
+                    gap: 1rem;
+                    justify-content: flex-end;
+                    margin-top: 1.5rem;
+                    flex-wrap: wrap;
+                }
+
+                .theme-toggle {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: var(--bg-card);
+                    border: 2px solid var(--border-color);
+                    border-radius: 50%;
+                    width: 55px;
+                    height: 55px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    color: var(--text-primary);
+                    box-shadow: var(--shadow-card);
+                    font-size: 1.2rem;
+                    z-index: 9999;
+                }
+
+                .theme-toggle:hover {
+                    transform: scale(1.1) rotate(180deg);
+                    box-shadow: var(--shadow-hover);
+                }
+
+                @media (max-width: 768px) {
+                    .profile-container {
+                        padding: 20px 15px;
+                    }
+                    
+                    .modern-title {
+                        font-size: 2rem;
+                        margin-bottom: 1.5rem;
+                    }
+                    
+                    .profile-form {
+                        padding: 1.5rem;
+                    }
+                    
+                    .form-grid {
+                        grid-template-columns: 1fr;
+                        gap: 1rem;
+                    }
+                    
+                    .form-actions {
+                        flex-direction: column;
+                        align-items: stretch;
+                    }
+                    
+                    .message-container {
+                        justify-content: center;
+                        order: -1;
+                    }
+                    
+                    .modal-actions {
+                        justify-content: center;
+                    }
+                    
+                    .theme-toggle {
+                        top: 15px;
+                        right: 15px;
+                        width: 45px;
+                        height: 45px;
+                        font-size: 1rem;
+                    }
+                }
+
+                @media (max-width: 576px) {
+                    .profile-form {
+                        padding: 1rem;
+                    }
+                    
+                    .modern-button {
+                        padding: 10px 18px;
+                        font-size: 0.9rem;
+                    }
+                }
+            `}</style>
+
+            {/* Theme Toggle */}
+            <div 
+                className="theme-toggle"
+                onClick={() => {
+                    const currentTheme = document.documentElement.getAttribute('data-theme');
+                    document.documentElement.setAttribute('data-theme', 
+                        currentTheme === 'dark' ? 'light' : 'dark'
+                    );
+                }}
+                title="Cambiar tema"
+            >
+                🌓
+            </div>
+
+            <div className="profile-container">
+                <div className="profile-wrapper">
+                    <h1 className="modern-title">
+                         Mi Perfil
+                    </h1>
+                    
+                    {isLoading ? (
+                        <div className="loading-container">
+                            <div className="loading-icon"></div>
+                            <div className="loading-text">Cargando perfil...</div>
+                        </div>
+                    ) : error && !profile ? (
+                        <div className="error-container">
+                            <div className="error-icon">❌</div>
+                            <div className="error-text">Error: {error}</div>
+                        </div>
+                    ) : profile && (
+                        <div className="profile-card">
+                            <form onSubmit={handleSubmit} className="profile-form">
+                                <div className="form-grid">
+                                    <div className="form-group">
+                                        <label className="form-label">Nombre de Usuario</label>
+                                        <input 
+                                            type="text" 
+                                            name="username" 
+                                            defaultValue={profile.username} 
+                                            className="form-input"
+                                            readOnly 
+                                        />
                                     </div>
-                                )}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300">Rol</label>
-                                    <p className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white capitalize">{profile.role}</p>
-                                </div>
-                                {profile.role === 'instructor' && profile.fichas && profile.fichas.length > 0 && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300">Fichas Asignadas</label>
-                                        <p className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white">
-                                            {profile.fichas.map(fichaId => fichaId).join(', ')}
-                                        </p>
+                                    <div className="form-group">
+                                        <label className="form-label">Email</label>
+                                        <input 
+                                            type="email" 
+                                            name="email" 
+                                            defaultValue={profile.email} 
+                                            className="form-input"
+                                            required 
+                                        />
                                     </div>
-                                )}
-                            </div>
-                            <div className="border-t border-gray-700 pt-6 flex justify-between items-center">
-                                <button type="button" onClick={() => setIsPasswordModalOpen(true)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">
-                                    Cambiar Contraseña
-                                </button>
-                                <div className="flex items-center">
-                                    {error && <p className="text-sm text-red-500 mr-4">{error}</p>}
-                                    {success && <p className="text-sm text-green-500 mr-4">{success}</p>}
-                                    <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Guardar Cambios</button>
+                                    <div className="form-group">
+                                        <label className="form-label">Nombre</label>
+                                        <input 
+                                            type="text" 
+                                            name="first_name" 
+                                            defaultValue={profile.first_name} 
+                                            className="form-input"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Apellido</label>
+                                        <input 
+                                            type="text" 
+                                            name="last_name" 
+                                            defaultValue={profile.last_name} 
+                                            className="form-input"
+                                        />
+                                    </div>
+                                    {profile.role === 'student' && (
+                                        <div className="form-group">
+                                            <label className="form-label">ID de Estudiante</label>
+                                            <input 
+                                                type="text" 
+                                                name="student_id" 
+                                                defaultValue={profile.student_id || ''} 
+                                                className="form-input"
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="form-group">
+                                        <label className="form-label">Rol</label>
+                                        <div className="readonly-field">
+                                            {profile.role}
+                                        </div>
+                                    </div>
+                                    {profile.role === 'instructor' && profile.fichas && profile.fichas.length > 0 && (
+                                        <div className="form-group">
+                                            <label className="form-label">Fichas Asignadas</label>
+                                            <div className="readonly-field">
+                                                {profile.fichas.map(fichaId => fichaId).join(', ')}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        </form>
-                    </div>
-                )}
+                                
+                                <div className="form-actions">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsPasswordModalOpen(true)} 
+                                        className="modern-button secondary-button"
+                                    >
+                                        Cambiar Contraseña
+                                    </button>
+                                    <div className="message-container">
+                                        {error && (
+                                            <div className="error-message">
+                                                ❌ {error}
+                                            </div>
+                                        )}
+                                        {success && (
+                                            <div className="success-message">
+                                                 {success}
+                                            </div>
+                                        )}
+                                        <button type="submit" className="modern-button">
+                                             Guardar Cambios
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {isPasswordModalOpen && (
                 <Modal onClose={() => setIsPasswordModalOpen(false)}>
-                    <h2 className="text-2xl font-bold text-white mb-4">Cambiar Contraseña</h2>
-                    <form onSubmit={handleChangePassword} className="space-y-4">
-                        <div>
-                            <label htmlFor="old_password" className="block text-sm font-medium text-gray-300">Contraseña Actual</label>
-                            <input type="password" name="old_password" id="old_password" className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white" required />
+                    <h2 className="modal-title"> Cambiar Contraseña</h2>
+                    <form onSubmit={handleChangePassword} className="modal-form">
+                        <div className="form-group">
+                            <label className="form-label">Contraseña Actual</label>
+                            <input 
+                                type="password" 
+                                name="old_password" 
+                                className="form-input"
+                                required 
+                            />
                         </div>
-                        <div>
-                            <label htmlFor="new_password" className="block text-sm font-medium text-gray-300">Nueva Contraseña</label>
-                            <input type="password" name="new_password" id="new_password" className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white" required />
+                        <div className="form-group">
+                            <label className="form-label">Nueva Contraseña</label>
+                            <input 
+                                type="password" 
+                                name="new_password" 
+                                className="form-input"
+                                required 
+                            />
                         </div>
-                        <div>
-                            <label htmlFor="new_password2" className="block text-sm font-medium text-gray-300">Confirmar Nueva Contraseña</label>
-                            <input type="password" name="new_password2" id="new_password2" className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white" required />
+                        <div className="form-group">
+                            <label className="form-label">Confirmar Nueva Contraseña</label>
+                            <input 
+                                type="password" 
+                                name="new_password2" 
+                                className="form-input"
+                                required 
+                            />
                         </div>
                         
-                        {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
-                        {passwordSuccess && <p className="text-sm text-green-500">{passwordSuccess}</p>}
+                        {passwordError && (
+                            <div className="error-message"> {passwordError}</div>
+                        )}
+                        {passwordSuccess && (
+                            <div className="success-message"> {passwordSuccess}</div>
+                        )}
 
-                        <div className="flex justify-end space-x-4 pt-4">
-                            <button type="button" onClick={() => setIsPasswordModalOpen(false)} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Cancelar</button>
-                            <button type="submit" className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Actualizar Contraseña</button>
+                        <div className="modal-actions">
+                            <button 
+                                type="button" 
+                                onClick={() => setIsPasswordModalOpen(false)} 
+                                className="modern-button secondary-button"
+                            >
+                                Cancelar
+                            </button>
+                            <button type="submit" className="modern-button success-button">
+                                 Actualizar Contraseña
+                            </button>
                         </div>
                     </form>
                 </Modal>

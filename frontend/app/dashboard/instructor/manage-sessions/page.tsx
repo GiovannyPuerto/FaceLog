@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
 import { Container, Card, Button, Table, Form, Row, Col, Modal, Alert, Spinner } from 'react-bootstrap';
+import { useTranslation } from 'react-i18next';
 
 export default function ManageSessionsPage() {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [sessions, setSessions] = useState([]);
     const [fichas, setFichas] = useState([]);
@@ -22,7 +24,7 @@ export default function ManageSessionsPage() {
             const response = await api.get('attendance/sessions/', { params: filters });
             setSessions(response.data.results || response.data);
         } catch (err) {
-            setError("No se pudieron cargar las sesiones.");
+            setError(t('manage_sessions.error_loading'));
         } finally {
             setLoading(false);
         }
@@ -44,12 +46,12 @@ export default function ManageSessionsPage() {
     }, [user]);
 
     const handleDelete = async (sessionId) => {
-        if (!confirm("¿Estás seguro de que quieres eliminar esta sesión?")) return;
+        if (!confirm(t('manage_sessions.confirm_delete'))) return;
         try {
             await api.delete(`attendance/sessions/${sessionId}/`);
             setSessions(sessions.filter(s => s.id !== sessionId));
         } catch (err) {
-            alert("No se pudo eliminar la sesión.");
+            alert(t('manage_sessions.error_deleting'));
         }
     };
 
@@ -79,7 +81,8 @@ export default function ManageSessionsPage() {
             await fetchSessions();
             setShowModal(false);
         } catch (err) {
-            alert(`Error al guardar la sesión: ${err.response?.data?.detail || Object.values(err.response?.data || {}).flat().join(', ') || 'Error desconocido'}`);
+            const errorMessage = err.response?.data?.detail || Object.values(err.response?.data || {}).flat().join(', ') || 'Error desconocido';
+            alert(t('manage_sessions.error_saving', { error: errorMessage }));
         }
     };
 
@@ -95,7 +98,7 @@ export default function ManageSessionsPage() {
         return (
             <div className="modern-loading">
                 <Spinner animation="border" className="modern-spinner" />
-                <div className="modern-loading-text">Cargando sesiones...</div>
+                <div className="modern-loading-text">{t('manage_sessions.loading')}</div>
             </div>
         );
     }
@@ -409,7 +412,7 @@ export default function ManageSessionsPage() {
 
                 .theme-toggle {
                     position: fixed;
-                    top: 20px;
+                    top: 15px;
                     right: 20px;
                     background: var(--bg-card);
                     border: 2px solid var(--border-color);
@@ -482,7 +485,7 @@ export default function ManageSessionsPage() {
                         currentTheme === 'dark' ? 'light' : 'dark'
                     );
                 }}
-                title="Cambiar tema"
+                title={t('common.change_theme')}
             >
                 🌓
             </div>
@@ -491,13 +494,13 @@ export default function ManageSessionsPage() {
                 <Container fluid className="h-100">
                     <div className="d-flex justify-content-between align-items-center mb-4">
                         <h1 className="modern-title">
-                             Gestionar Sesiones de Asistencia
+                            {t('manage_sessions.title')}
                         </h1>
                         <Button 
                             onClick={() => handleOpenModal()} 
                             className="modern-button-primary"
                         >
-                             Crear Sesión
+                            {t('manage_sessions.create_session')}
                         </Button>
                     </div>
 
@@ -505,21 +508,21 @@ export default function ManageSessionsPage() {
                     <Card className="modern-filter-card">
                         <Row className="g-3">
                             <Col md={3}>
-                                <Form.Label className="modern-label"> Ficha</Form.Label>
+                                <Form.Label className="modern-label">{t('manage_sessions.filter_by_ficha')}</Form.Label>
                                 <Form.Select 
                                     name="ficha" 
                                     value={filters.ficha} 
                                     onChange={handleFilterChange}
                                     className="modern-input"
                                 >
-                                    <option value="">Todas</option>
+                                    <option value="">{t('manage_sessions.all_fichas')}</option>
                                     {fichas.map(f => (
                                         <option key={f.id} value={f.id}>{f.numero_ficha}</option>
                                     ))}
                                 </Form.Select>
                             </Col>
                             <Col md={3}>
-                                <Form.Label className="modern-label"> Fecha</Form.Label>
+                                <Form.Label className="modern-label">{t('manage_sessions.filter_by_date')}</Form.Label>
                                 <Form.Control 
                                     type="date" 
                                     name="date" 
@@ -529,16 +532,16 @@ export default function ManageSessionsPage() {
                                 />
                             </Col>
                             <Col md={3}>
-                                <Form.Label className="modern-label"> Estado</Form.Label>
+                                <Form.Label className="modern-label">{t('manage_sessions.filter_by_status')}</Form.Label>
                                 <Form.Select 
                                     name="is_active" 
                                     value={filters.is_active} 
                                     onChange={handleFilterChange}
                                     className="modern-input"
                                 >
-                                    <option value="">Todas</option>
-                                    <option value="true">Activa</option>
-                                    <option value="false">Inactiva</option>
+                                    <option value="">{t('manage_sessions.all_statuses')}</option>
+                                    <option value="true">{t('manage_sessions.status_active')}</option>
+                                    <option value="false">{t('manage_sessions.status_inactive')}</option>
                                 </Form.Select>
                             </Col>
                             <Col md={3} className="d-flex align-items-end">
@@ -546,7 +549,7 @@ export default function ManageSessionsPage() {
                                     onClick={handleApplyFilters} 
                                     className="modern-button-primary w-100"
                                 >
-                                     Filtrar
+                                    {t('manage_sessions.apply_filters')}
                                 </Button>
                             </Col>
                         </Row>
@@ -557,13 +560,13 @@ export default function ManageSessionsPage() {
                         <Table responsive className="modern-table mb-0">
                             <thead>
                                 <tr>
-                                    <th> Ficha</th>
-                                    <th> Fecha</th>
-                                    <th> Inicio</th>
-                                    <th> Fin</th>
-                                    <th> Permisividad</th>
-                                    <th>Estado</th>
-                                    <th> Acciones</th>
+                                    <th>{t('manage_sessions.table_header_ficha')}</th>
+                                    <th>{t('manage_sessions.table_header_date')}</th>
+                                    <th>{t('manage_sessions.table_header_start')}</th>
+                                    <th>{t('manage_sessions.table_header_end')}</th>
+                                    <th>{t('manage_sessions.table_header_leniency')}</th>
+                                    <th>{t('manage_sessions.table_header_status')}</th>
+                                    <th>{t('manage_sessions.table_header_actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -571,7 +574,7 @@ export default function ManageSessionsPage() {
                                     <tr>
                                         <td colSpan={7} className="text-center py-4">
                                             <span className="text-muted">
-                                                 No hay sesiones para mostrar
+                                                {t('manage_sessions.no_sessions_found')}
                                             </span>
                                         </td>
                                     </tr>
@@ -582,10 +585,10 @@ export default function ManageSessionsPage() {
                                             <td>{session.date}</td>
                                             <td>{session.start_time}</td>
                                             <td>{session.end_time}</td>
-                                            <td>{session.permisividad || 0} min</td>
+                                            <td>{session.permisividad || 0} {t('manage_sessions.leniency_minutes')}</td>
                                             <td>
                                                 <span className={`status-badge ${session.is_active ? 'status-active' : 'status-inactive'}`}>
-                                                    {session.is_active ? ' Activa' : ' Inactiva'}
+                                                    {session.is_active ? t('manage_sessions.status_active') : t('manage_sessions.status_inactive')}
                                                 </span>
                                             </td>
                                             <td>
@@ -595,14 +598,14 @@ export default function ManageSessionsPage() {
                                                         className="modern-button-warning"
                                                         size="sm"
                                                     >
-                                                         Editar
+                                                        {t('manage_sessions.edit_button')}
                                                     </Button>
                                                     <Button 
                                                         onClick={() => handleDelete(session.id)}
                                                         className="modern-button-danger"
                                                         size="sm"
                                                     >
-                                                         Eliminar
+                                                        {t('manage_sessions.delete_button')}
                                                     </Button>
                                                 </div>
                                             </td>
@@ -625,7 +628,7 @@ export default function ManageSessionsPage() {
             >
                 <Modal.Header closeButton className="modern-modal-header">
                     <Modal.Title className="modern-modal-title">
-                        {editingSession ? ' Editar Sesión' : ' Crear Nueva Sesión'}
+                        {editingSession ? t('manage_sessions.modal_edit_title') : t('manage_sessions.modal_create_title')}
                     </Modal.Title>
                 </Modal.Header>
                 
@@ -633,14 +636,14 @@ export default function ManageSessionsPage() {
                     <Modal.Body className="modern-modal-body">
                         <Row className="g-3">
                             <Col md={6}>
-                                <Form.Label className="modern-label"> Ficha</Form.Label>
+                                <Form.Label className="modern-label">{t('manage_sessions.table_header_ficha')}</Form.Label>
                                 <Form.Select 
                                     name="ficha" 
                                     defaultValue={editingSession?.ficha.id}
                                     className="modern-input"
                                     required
                                 >
-                                    <option value="">Seleccionar Ficha</option>
+                                    <option value="">{t('manage_sessions.modal_select_ficha')}</option>
                                     {fichas.map(f => (
                                         <option key={f.id} value={f.id}>{f.numero_ficha}</option>
                                     ))}
@@ -648,7 +651,7 @@ export default function ManageSessionsPage() {
                             </Col>
                             
                             <Col md={6}>
-                                <Form.Label className="modern-label"> Fecha</Form.Label>
+                                <Form.Label className="modern-label">{t('manage_sessions.modal_date')}</Form.Label>
                                 <Form.Control 
                                     type="date" 
                                     name="date" 
@@ -659,7 +662,7 @@ export default function ManageSessionsPage() {
                             </Col>
                             
                             <Col md={6}>
-                                <Form.Label className="modern-label"> Hora de Inicio</Form.Label>
+                                <Form.Label className="modern-label">{t('manage_sessions.modal_start_time')}</Form.Label>
                                 <Form.Control 
                                     type="time" 
                                     name="start_time" 
@@ -670,7 +673,7 @@ export default function ManageSessionsPage() {
                             </Col>
                             
                             <Col md={6}>
-                                <Form.Label className="modern-label"> Hora de Fin</Form.Label>
+                                <Form.Label className="modern-label">{t('manage_sessions.modal_end_time')}</Form.Label>
                                 <Form.Control 
                                     type="time" 
                                     name="end_time" 
@@ -681,7 +684,7 @@ export default function ManageSessionsPage() {
                             </Col>
                             
                             <Col md={6}>
-                                <Form.Label className="modern-label"> Permisividad (minutos)</Form.Label>
+                                <Form.Label className="modern-label">{t('manage_sessions.modal_leniency')}</Form.Label>
                                 <Form.Control 
                                     type="number" 
                                     name="permisividad" 
@@ -696,7 +699,7 @@ export default function ManageSessionsPage() {
                                 <Form.Check 
                                     type="checkbox" 
                                     name="is_active" 
-                                    label="Sesión Activa"
+                                    label={t('manage_sessions.modal_active_session')}
                                     defaultChecked={editingSession?.is_active}
                                     className="modern-label mt-4"
                                 />
@@ -710,13 +713,13 @@ export default function ManageSessionsPage() {
                             onClick={handleCloseModal}
                             className="me-2"
                         >
-                             Cancelar
+                            {t('manage_sessions.modal_cancel')}
                         </Button>
                         <Button 
                             type="submit"
                             className="modern-button-success"
                         >
-                             Guardar Sesión
+                            {t('manage_sessions.modal_save')}
                         </Button>
                     </Modal.Footer>
                 </Form>

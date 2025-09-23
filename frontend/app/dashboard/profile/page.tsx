@@ -1,6 +1,7 @@
 "use client";
-
+//frontend/app/dashboard/profile/page.tsx
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../../../lib/api';
 import useAuth from '../../../hooks/useAuth';
 
@@ -14,7 +15,8 @@ const Modal = ({ children, onClose }) => (
     </div>
 );
 
-export default function ProfilePage() {
+export default function PerfilPage() {
+    const { t } = useTranslation('profile');
     const { user, loading: authLoading } = useAuth();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -32,7 +34,7 @@ export default function ProfilePage() {
                 const response = await api.get('auth/profile/');
                 setProfile(response.data);
             } catch (err) {
-                setError("No se pudo cargar el perfil.");
+                setError(t('perfil_error_loading'));
             } finally {
                 setLoading(false);
             }
@@ -61,11 +63,11 @@ export default function ProfilePage() {
         try {
             const response = await api.patch('auth/profile/', data);
             setProfile(response.data);
-            setSuccess("Perfil actualizado con éxito.");
+            setSuccess(t('perfil_update_success'));
         } catch (err) {
             const apiError = err.response?.data;
-            const errorMessage = apiError ? Object.values(apiError).join(', ') : 'Error desconocido.';
-            setError(`No se pudo actualizar el perfil: ${errorMessage}`);
+            const errorMessage = apiError ? Object.values(apiError).join(', ') : t('common_unknown_error');
+            setError(`${t('perfil_error_update')}: ${errorMessage}`);
         }
     };
 
@@ -80,7 +82,7 @@ export default function ProfilePage() {
         const new_password2 = formData.get('new_password2');
 
         if (new_password !== new_password2) {
-            setPasswordError("Las nuevas contraseñas no coinciden.");
+            setPasswordError(t('perfil_password_mismatch'));
             return;
         }
 
@@ -312,6 +314,7 @@ export default function ProfilePage() {
 
                 .secondary-button {
                     background: var(--button-secondary);
+                    position: relative;
                 }
 
                 .secondary-button:hover {
@@ -448,7 +451,7 @@ export default function ProfilePage() {
 
                 .theme-toggle {
                     position: fixed;
-                    top: 20px;
+                    top: 15px;
                     right: 20px;
                     background: var(--bg-card);
                     border: 2px solid var(--border-color);
@@ -542,25 +545,25 @@ export default function ProfilePage() {
             <div className="profile-container">
                 <div className="profile-wrapper">
                     <h1 className="modern-title">
-                         Mi Perfil
+                         {t('perfil_title')}
                     </h1>
                     
                     {isLoading ? (
                         <div className="loading-container">
                             <div className="loading-icon"></div>
-                            <div className="loading-text">Cargando perfil...</div>
+                            <div className="loading-text">{t('perfil_loading')}</div>
                         </div>
                     ) : error && !profile ? (
                         <div className="error-container">
                             <div className="error-icon">❌</div>
-                            <div className="error-text">Error: {error}</div>
+                            <div className="error-text">{t('common_error')}: {error}</div>
                         </div>
                     ) : profile && (
                         <div className="profile-card">
                             <form onSubmit={handleSubmit} className="profile-form">
                                 <div className="form-grid">
                                     <div className="form-group">
-                                        <label className="form-label">Nombre de Usuario</label>
+                                        <label className="form-label">{t('username_label')}</label>
                                         <input 
                                             type="text" 
                                             name="username" 
@@ -570,7 +573,7 @@ export default function ProfilePage() {
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">Email</label>
+                                        <label className="form-label">{t('email_label')}</label>
                                         <input 
                                             type="email" 
                                             name="email" 
@@ -580,7 +583,7 @@ export default function ProfilePage() {
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">Nombre</label>
+                                        <label className="form-label">{t('username_label')}</label>
                                         <input 
                                             type="text" 
                                             name="first_name" 
@@ -589,7 +592,7 @@ export default function ProfilePage() {
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">Apellido</label>
+                                        <label className="form-label">{t('last_name_label')}</label>
                                         <input 
                                             type="text" 
                                             name="last_name" 
@@ -609,14 +612,14 @@ export default function ProfilePage() {
                                         </div>
                                     )}
                                     <div className="form-group">
-                                        <label className="form-label">Rol</label>
+                                        <label className="form-label">{t('role_label')}</label>
                                         <div className="readonly-field">
                                             {profile.role}
                                         </div>
                                     </div>
                                     {profile.role === 'instructor' && profile.fichas && profile.fichas.length > 0 && (
                                         <div className="form-group">
-                                            <label className="form-label">Fichas Asignadas</label>
+                                            <label className="form-label">{t('assigned_fichas_label')}</label>
                                             <div className="readonly-field">
                                                 {profile.fichas.map(fichaId => fichaId).join(', ')}
                                             </div>
@@ -630,7 +633,7 @@ export default function ProfilePage() {
                                         onClick={() => setIsPasswordModalOpen(true)} 
                                         className="modern-button secondary-button"
                                     >
-                                        Cambiar Contraseña
+                                        {t('change_password_modal_title')}   
                                     </button>
                                     <div className="message-container">
                                         {error && (
@@ -644,7 +647,7 @@ export default function ProfilePage() {
                                             </div>
                                         )}
                                         <button type="submit" className="modern-button">
-                                             Guardar Cambios
+                                            {t('save_changes_button')}
                                         </button>
                                     </div>
                                 </div>
@@ -656,10 +659,10 @@ export default function ProfilePage() {
 
             {isPasswordModalOpen && (
                 <Modal onClose={() => setIsPasswordModalOpen(false)}>
-                    <h2 className="modal-title"> Cambiar Contraseña</h2>
+                    <h2 className="modal-title">{t('change_password_button')}</h2>
                     <form onSubmit={handleChangePassword} className="modal-form">
                         <div className="form-group">
-                            <label className="form-label">Contraseña Actual</label>
+                            <label className="form-label">{t('current_password_label')}</label>
                             <input 
                                 type="password" 
                                 name="old_password" 
@@ -668,7 +671,7 @@ export default function ProfilePage() {
                             />
                         </div>
                         <div className="form-group">
-                            <label className="form-label">Nueva Contraseña</label>
+                            <label className="form-label">{t('new_password_label')}</label>
                             <input 
                                 type="password" 
                                 name="new_password" 
@@ -677,7 +680,7 @@ export default function ProfilePage() {
                             />
                         </div>
                         <div className="form-group">
-                            <label className="form-label">Confirmar Nueva Contraseña</label>
+                            <label className="form-label">{t('confirm_new_password_label')}</label>
                             <input 
                                 type="password" 
                                 name="new_password2" 
@@ -699,10 +702,10 @@ export default function ProfilePage() {
                                 onClick={() => setIsPasswordModalOpen(false)} 
                                 className="modern-button secondary-button"
                             >
-                                Cancelar
+                                {t('cancel_button')}
                             </button>
                             <button type="submit" className="modern-button success-button">
-                                 Actualizar Contraseña
+                                  {t('update_password_button')}
                             </button>
                         </div>
                     </form>

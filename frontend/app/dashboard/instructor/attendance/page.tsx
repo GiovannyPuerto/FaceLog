@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
 import { Container, Card, Button, Modal, Form, Badge, Row, Col, Spinner, Alert } from 'react-bootstrap';
+import { useTranslation } from 'react-i18next';
 
 declare global {
     interface Window {
@@ -32,23 +33,14 @@ const getStatusIcon = (status) => {
     }
 };
 
-const getStatusText = (status) => {
-    switch (status) {
-        case 'present': return 'Presente';
-        case 'absent': return 'Ausente';
-        case 'late': return 'Tardanza';
-        case 'excused': return 'Excusado';
-        default: return status;
-    }
-};
-
 export default function TakeAttendancePage() {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [todaysSessions, setTodaysSessions] = useState([]);
     const [selectedSessionObject, setSelectedSessionObject] = useState(null);
     const [session, setSession] = useState(null);
     const [attendanceLog, setAttendanceLog] = useState([]);
-    const [recognitionStatus, setRecognitionStatus] = useState('Cargando modelos de IA...');
+    const [recognitionStatus, setRecognitionStatus] = useState(t('attendance_loading_models'));
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
@@ -57,6 +49,16 @@ export default function TakeAttendancePage() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingLog, setEditingLog] = useState(null);
 
+    const getStatusText = (status) => {
+        switch (status) {
+            case 'present': return t('attendance_status_present');
+            case 'absent': return t('attendance_status_absent');
+            case 'late': return t('attendance_status_late');
+            case 'excused': return t('attendance_status_excused');
+            default: return status;
+        }
+    };
+
     // 1. Cargar modelos de FaceAPI
     useEffect(() => {
         const loadModels = async () => {
@@ -64,14 +66,14 @@ export default function TakeAttendancePage() {
             try {
                 await window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
                 setModelsLoaded(true);
-                setRecognitionStatus('Modelos cargados. Listo para iniciar sesión.');
+                setRecognitionStatus(t('attendance_models_loaded'));
             } catch (error) {
                 console.error("Error loading face-api models:", error);
-                setRecognitionStatus('Error al cargar modelos de IA. Refresca la página.');
+                setRecognitionStatus(t('attendance_models_error'));
             }
         };
         loadModels();
-    }, []);
+    }, [t]);
 
     // 2. Obtener sesiones de hoy del instructor
     useEffect(() => {
@@ -119,7 +121,7 @@ export default function TakeAttendancePage() {
 
     const handleBeginAttendance = () => {
         if (!selectedSessionObject) {
-            alert("Por favor, seleccione una sesión primero.");
+            alert(t('attendance_select_session_alert'));
             return;
         }
         setSession(selectedSessionObject);
@@ -129,7 +131,7 @@ export default function TakeAttendancePage() {
         setSession(null);
         setSelectedSessionObject(null);
         setAttendanceLog([]);
-        setRecognitionStatus('Sesión detenida. Listo para iniciar una nueva sesión.');
+        setRecognitionStatus(t('attendance_session_stopped'));
     };
 
     const handleDetection = async () => {
@@ -158,12 +160,15 @@ export default function TakeAttendancePage() {
 
         tempCanvas.toBlob(async (blob) => {
             if (!blob) return;
-            setRecognitionStatus('Enviando para reconocimiento...');
+            setRecognitionStatus(t('attendance_sending_for_recognition'));
             const formData = new FormData();
             formData.append('session_id', session.id);
             formData.append('image', blob, 'capture.jpg');
             try {
                 const response = await api.post('face/recognize/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+
+                setRecognitionStatus(`${t('attendance_recognition_result')}${response.data.message || t('attendance_no_new_recognition')}`);
+
                 
                 if (response.data.recognized_students && response.data.recognized_students.length > 0) {
                     const recognizedNames = response.data.recognized_students.map(s => s.full_name).join(', ');
@@ -173,9 +178,10 @@ export default function TakeAttendancePage() {
                     setRecognitionStatus('No se reconoció a nadie nuevo.');
                 }
 
+
                 fetchAttendanceLog();
             } catch (error) {
-                setRecognitionStatus(`Error: ${error.response?.data?.error || 'Fallo en el reconocimiento'}`);
+                setRecognitionStatus(`${t('attendance_recognition_error')}${error.response?.data?.error || t('attendance_recognition_failed')}`);
             }
         }, 'image/jpeg');
     };
@@ -213,7 +219,7 @@ export default function TakeAttendancePage() {
             fetchAttendanceLog();
             setShowEditModal(false);
         } catch (err) {
-            alert("Error al actualizar la asistencia.");
+            alert(t('attendance_update_error_alert'));
             console.error("Error updating attendance", err);
         }
     };
@@ -407,7 +413,7 @@ export default function TakeAttendancePage() {
                             currentTheme === 'dark' ? 'light' : 'dark'
                         );
                     }}
-                    title="Cambiar tema"
+                    title={t('common_change_theme')}
                 >
                     🌓
                 </div>
@@ -416,7 +422,7 @@ export default function TakeAttendancePage() {
                     <Card className="modern-select-card">
                         <Card.Body className="p-5">
                             <h1 className="modern-select-title">
-                                 Seleccionar Sesión de Hoy
+                                {t('attendance_select_today_session')}
                             </h1>
                             <p className="modern-select-description">
                                 {recognitionStatus}
@@ -432,7 +438,7 @@ export default function TakeAttendancePage() {
                                 className="modern-select"
                             >
                                 <option value="" disabled>
-                                    {todaysSessions.length > 0 ? 'Selecciona una Sesión Programada' : 'No hay sesiones para hoy'}
+                                    {todaysSessions.length > 0 ? t('attendance_select_scheduled_session') : t('attendance_no_sessions_today')}
                                 </option>
                                 {todaysSessions.map(s => (
                                     <option key={s.id} value={s.id}>
@@ -446,7 +452,7 @@ export default function TakeAttendancePage() {
                                 disabled={!selectedSessionObject || !modelsLoaded}
                                 className="modern-start-button"
                             >
-                                 Empezar Asistencia
+                                {t('attendance_start_button')}
                             </Button>
                         </Card.Body>
                     </Card>
@@ -781,8 +787,8 @@ export default function TakeAttendancePage() {
                 }
 
                 .theme-toggle {
-                    position: fixed;
-                    top: 20px;
+                    position: relative;
+                    top: 25px;
                     right: 20px;
                     background: var(--bg-card);
                     border: 2px solid var(--border-color);
@@ -857,7 +863,7 @@ export default function TakeAttendancePage() {
                         currentTheme === 'dark' ? 'light' : 'dark'
                     );
                 }}
-                title="Cambiar tema"
+                title={t('common_change_theme')}
             >
                 🌓
             </div>
@@ -867,10 +873,10 @@ export default function TakeAttendancePage() {
                     {/* Header de sesión activa */}
                     <div className="modern-session-header">
                         <h1 className="modern-session-title">
-                             Sesión Activa | Ficha: {session.ficha.numero_ficha}
+                            {t('attendance_active_session_title', { ficha: session.ficha.numero_ficha })}
                         </h1>
                         <Button onClick={handleStopSession} className="modern-stop-button">
-                             Detener Sesión
+                            {t('attendance_stop_session_button')}
                         </Button>
                     </div>
 
@@ -880,7 +886,7 @@ export default function TakeAttendancePage() {
                             <Card className="modern-card">
                                 <Card.Body className="p-4">
                                     <h2 className="modern-card-title">
-                                         Cámara de Reconocimiento Facial
+                                        {t('attendance_camera_title')}
                                     </h2>
                                     <div className="modern-video-container">
                                         <video 
@@ -907,21 +913,21 @@ export default function TakeAttendancePage() {
                             <Card className="modern-card">
                                 <Card.Body className="p-4">
                                     <h2 className="modern-card-title">
-                                         Registro de Asistencia ({attendanceLog.length})
+                                        {t('attendance_log_title', { count: attendanceLog.length })}
                                     </h2>
                                     <div className="modern-attendance-list">
                                         {attendanceLog.length === 0 ? (
                                             <div className="empty-state">
                                                 <div style={{ fontSize: '3rem', marginBottom: '20px' }}>👥</div>
-                                                <p>Aún no se ha registrado asistencia.</p>
-                                                <p>Los estudiantes aparecerán aquí cuando sean reconocidos por la cámara.</p>
+                                                <p>{t('attendance_no_log_yet')}</p>
+                                                <p>{t('attendance_students_will_appear_here')}</p>
                                             </div>
                                         ) : (
                                             attendanceLog.map(log => (
                                                 <div key={log.id} className="modern-attendance-item">
                                                     <div className="modern-student-info">
                                                         <h6>{log.student.first_name} {log.student.last_name}</h6>
-                                                        <small>ID: {log.student.student_id || 'N/A'}</small>
+                                                        <small>{t('attendance_student_id', { id: log.student.student_id || 'N/A' })}</small>
                                                     </div>
                                                     <div className="modern-attendance-actions">
                                                         <Badge 
@@ -934,7 +940,7 @@ export default function TakeAttendancePage() {
                                                             onClick={() => handleOpenEditModal(log)}
                                                             className="modern-edit-button"
                                                         >
-                                                             Editar
+                                                            {t('attendance_edit_button')}
                                                         </button>
                                                     </div>
                                                 </div>
@@ -957,24 +963,24 @@ export default function TakeAttendancePage() {
             >
                 <Modal.Header closeButton className="modern-modal-header">
                     <Modal.Title className="modern-modal-title">
-                         Editar Asistencia de {editingLog?.student.first_name}
+                        {t('attendance_edit_modal_title', { studentName: editingLog?.student.first_name })}
                     </Modal.Title>
                 </Modal.Header>
                 
                 <Form onSubmit={handleUpdateAttendance}>
                     <Modal.Body className="modern-modal-body">
                         <Form.Group>
-                            <Form.Label className="modern-label"> Estado de Asistencia</Form.Label>
+                            <Form.Label className="modern-label">{t('attendance_status_label')}</Form.Label>
                             <Form.Select 
                                 name="status" 
                                 defaultValue={editingLog?.status}
                                 className="modern-input"
                                 required
                             >
-                                <option value="present"> Presente</option>
-                                <option value="absent"> Ausente</option>
-                                <option value="late">Tardanza</option>
-                                <option value="excused"> Excusado</option>
+                                <option value="present">{t('attendance_status_present')}</option>
+                                <option value="absent">{t('attendance_status_absent')}</option>
+                                <option value="late">{t('attendance_status_late')}</option>
+                                <option value="excused">{t('attendance_status_excused')}</option>
                             </Form.Select>
                         </Form.Group>
                     </Modal.Body>
@@ -985,13 +991,13 @@ export default function TakeAttendancePage() {
                             onClick={() => setShowEditModal(false)}
                             className="me-2"
                         >
-                             Cancelar
+                            {t('common_cancel')}
                         </Button>
                         <Button 
                             type="submit"
                             className="modern-button-success"
                         >
-                             Guardar Cambios
+                            {t('common_save_changes')}
                         </Button>
                     </Modal.Footer>
                 </Form>

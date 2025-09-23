@@ -158,7 +158,7 @@ export default function StudentExcusesPage() {
                         </div>
                         <div>
                             <label htmlFor="reason" className="block text-sm font-medium text-gray-300">Motivo de la Excusa</label>
-                            <textarea name="reason" id="reason" rows="4" className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white" required></textarea>
+                            <textarea name="reason" id="reason" rows={4} className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white" required></textarea>
                         </div>
                         <div>
                             <label htmlFor="document" className="block text-sm font-medium text-gray-300">Adjunto (Opcional)</label>

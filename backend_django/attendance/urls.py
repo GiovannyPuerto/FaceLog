@@ -13,7 +13,9 @@ from .views import (
     GlobalAttendancePDFReportView, # Added import
     ListAbsencesView,
     InstructorDailySessionsView, # Added import
-    TodayAttendanceSessionListView
+    TodayAttendanceSessionListView,
+    ApprenticeUpcomingSessionsView,
+    FichaAttendanceReportView
 )
 
 # El router registra los ViewSets, que manejan las operaciones CRUD estandar
@@ -47,7 +49,11 @@ urlpatterns = [
     # Ruta para el resumen del dashboard del aprendiz
     path('dashboard/apprentice/summary/', ApprenticeDashboardSummaryView.as_view(), name='apprentice-dashboard-summary'),
 
+    # Ruta para las próximas sesiones del aprendiz
+    path('dashboard/apprentice/upcoming-sessions/', ApprenticeUpcomingSessionsView.as_view(), name='apprentice-upcoming-sessions'),
+
     # Ruta para el reporte PDF global de asistencia
     path('report/global/pdf/', GlobalAttendancePDFReportView.as_view(), name='global-attendance-pdf-report'),
     path('today-sessions/', TodayAttendanceSessionListView.as_view(), name='today-sessions'),
+    path('fichas/<int:ficha_id>/attendance-report/', FichaAttendanceReportView.as_view(), name='ficha-attendance-report'),
 ]

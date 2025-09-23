@@ -1,13 +1,7 @@
-# excuses/urls.py
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from django.urls import path
 from .views import ExcuseViewSet
 
-# Creamos un router y registramos nuestro viewset
-router = DefaultRouter()
-router.register(r'excuses', ExcuseViewSet, basename='excuse')
-
-# Las URLs de la API son determinadas automáticamente por el router
 urlpatterns = [
-    path('', include(router.urls)),
+    path('', ExcuseViewSet.as_view({'post': 'create', 'get': 'list'}), name='excuse-list'),
+    path('<int:pk>/', ExcuseViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='excuse-detail'),
 ]

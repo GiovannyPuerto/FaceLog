@@ -166,7 +166,19 @@ export default function TakeAttendancePage() {
             formData.append('image', blob, 'capture.jpg');
             try {
                 const response = await api.post('face/recognize/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+
                 setRecognitionStatus(`${t('attendance_recognition_result')}${response.data.message || t('attendance_no_new_recognition')}`);
+
+                
+                if (response.data.recognized_students && response.data.recognized_students.length > 0) {
+                    const recognizedNames = response.data.recognized_students.map(s => s.full_name).join(', ');
+                    alert(`¡Bienvenido(a), ${recognizedNames}! Asistencia registrada.`);
+                    setRecognitionStatus(`Reconocido: ${recognizedNames}`);
+                } else {
+                    setRecognitionStatus('No se reconoció a nadie nuevo.');
+                }
+
+
                 fetchAttendanceLog();
             } catch (error) {
                 setRecognitionStatus(`${t('attendance_recognition_error')}${error.response?.data?.error || t('attendance_recognition_failed')}`);
@@ -500,7 +512,6 @@ export default function TakeAttendancePage() {
                     min-height: 100vh;
                     padding: 30px;
                     transition: background-color 0.3s ease;
-                    margin-left: 240px;
                 }
 
                 .modern-session-header {

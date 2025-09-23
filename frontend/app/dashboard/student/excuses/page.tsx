@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
 
@@ -31,6 +32,7 @@ export default function StudentExcusesPage() {
     const [error, setError] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [absentSessions, setAbsentSessions] = useState([]);
+    const [selectedSessionId, setSelectedSessionId] = useState(''); // New state for selected session
 
     const fetchExcuses = async () => {
         if (!user) return;
@@ -45,15 +47,26 @@ export default function StudentExcusesPage() {
         }
     };
 
+    const searchParams = useSearchParams(); // New line
+    const sessionIdFromUrl = searchParams.get('session_id'); // New line
+
     useEffect(() => {
         fetchExcuses();
-    }, [user]);
+        if (sessionIdFromUrl) { // New conditional logic
+            handleOpenCreateModal(sessionIdFromUrl); // Call with initialSessionId
+        }
+    }, [user, sessionIdFromUrl]); // Add sessionIdFromUrl to dependencies
 
-    const handleOpenCreateModal = async () => {
+    const handleOpenCreateModal = async (initialSessionId = null) => { // Add initialSessionId parameter
         try {
             const response = await api.get('attendance/absences/');
             setAbsentSessions(response.data.results || response.data);
             setIsModalOpen(true);
+            if (initialSessionId) {
+                setSelectedSessionId(initialSessionId); // Set the selected session
+            } else {
+                setSelectedSessionId(''); // Clear if no initial ID
+            }
         } catch (err) {
             setError("No se pudieron cargar las sesiones con ausencia.");
         }
@@ -64,6 +77,7 @@ export default function StudentExcusesPage() {
         const formData = new FormData(e.target);
         
         try {
+            console.log("Attempting to POST to:", api.defaults.baseURL + 'excuses/'); // Add this line
             await api.post('excuses/', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
@@ -129,7 +143,10 @@ export default function StudentExcusesPage() {
                     <form onSubmit={handleCreateExcuse} className="space-y-4">
                         <div>
                             <label htmlFor="session" className="block text-sm font-medium text-gray-300">Sesión con Inasistencia</label>
-                            <select name="session" id="session" className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white" required>
+                            <select name="session" id="session" className="mt-1 w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white" required
+                                value={selectedSessionId} // Bind value to state
+                                onChange={(e) => setSelectedSessionId(e.target.value)} // Update state on change
+                            >
                                 <option value="">Seleccione una sesión</option>
                                 {absentSessions.map(att => (
                                     <option key={att.session.id} value={att.session.id}>

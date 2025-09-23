@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 
 export default function SessionCalendarPage() {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -18,7 +20,7 @@ export default function SessionCalendarPage() {
             const response = await api.get('attendance/sessions/');
             setSessions(response.data.results || response.data);
         } catch (err) {
-            setError("No se pudieron cargar las sesiones.");
+            setError(t('session_calendar.error_loading'));
         } finally {
             setLoading(false);
         }
@@ -57,6 +59,8 @@ export default function SessionCalendarPage() {
             return sessionDate.toDateString() === day.toDateString();
         });
     };
+
+    const monthName = t('session_calendar.months', { returnObjects: true })[currentDate.getMonth()];
 
     return (
         <>
@@ -345,7 +349,7 @@ export default function SessionCalendarPage() {
 
                 .theme-toggle {
                     position: fixed;
-                    top: 20px;
+                    top: 15px;
                     right: 20px;
                     background: var(--bg-card);
                     border: 2px solid var(--border-color);
@@ -463,7 +467,7 @@ export default function SessionCalendarPage() {
                         currentTheme === 'dark' ? 'light' : 'dark'
                     );
                 }}
-                title="Cambiar tema"
+                title={t('common_change_theme')}
             >
                 🌓
             </div>
@@ -471,42 +475,42 @@ export default function SessionCalendarPage() {
             <div className="calendar-container">
                 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                     <h1 className="modern-title">
-                         Calendario de Sesiones
+                        {t('session_calendar.title')}
                     </h1>
 
                     {loading ? (
                         <div className="loading-container">
                             <div className="loading-icon"></div>
-                            <div className="loading-text">Cargando calendario...</div>
+                            <div className="loading-text">{t('session_calendar.loading')}</div>
                         </div>
                     ) : error ? (
                         <div className="error-container">
                             <div className="error-icon"></div>
-                            <div className="error-text">Error: {error}</div>
+                            <div className="error-text">{t('session_calendar.error_loading')}</div>
                         </div>
                     ) : (
                         <div className="calendar-card">
                             <div className="calendar-header">
                                 <button onClick={handlePrevMonth} className="calendar-nav-button">
-                                    ← Anterior
+                                    {t('session_calendar.previous_month')}
                                 </button>
                                 <h2 className="calendar-month-title">
-                                    {currentDate.toLocaleString('es-CO', { month: 'long', year: 'numeric' })}
+                                    {monthName} {currentDate.getFullYear()}
                                 </h2>
                                 <button onClick={handleNextMonth} className="calendar-nav-button">
-                                    Siguiente →
+                                    {t('session_calendar.next_month')}
                                 </button>
                             </div>
 
                             <div className="calendar-content">
                                 <div className="calendar-weekdays">
-                                    <div className="weekday-header">Dom</div>
-                                    <div className="weekday-header">Lun</div>
-                                    <div className="weekday-header">Mar</div>
-                                    <div className="weekday-header">Mié</div>
-                                    <div className="weekday-header">Jue</div>
-                                    <div className="weekday-header">Vie</div>
-                                    <div className="weekday-header">Sáb</div>
+                                    <div className="weekday-header">{t('session_calendar.weekday_sun')}</div>
+                                    <div className="weekday-header">{t('session_calendar.weekday_mon')}</div>
+                                    <div className="weekday-header">{t('session_calendar.weekday_tue')}</div>
+                                    <div className="weekday-header">{t('session_calendar.weekday_wed')}</div>
+                                    <div className="weekday-header">{t('session_calendar.weekday_thu')}</div>
+                                    <div className="weekday-header">{t('session_calendar.weekday_fri')}</div>
+                                    <div className="weekday-header">{t('session_calendar.weekday_sat')}</div>
                                 </div>
                                 
                                 <div className="calendar-grid">
@@ -522,7 +526,7 @@ export default function SessionCalendarPage() {
                                             <div 
                                                 key={day.toISOString()} 
                                                 className={`calendar-day ${isToday ? 'today' : ''} ${hasSession ? 'has-sessions' : ''}`}
-                                                title={hasSession ? `${daySessions.length} sesión${daySessions.length > 1 ? 'es' : ''}` : ''}
+                                                title={hasSession ? t(daySessions.length > 1 ? 'session_calendar.day_title_multiple_sessions' : 'session_calendar.day_title_single_session', { count: daySessions.length }) : ''}
                                             >
                                                 <div className="day-number">{day.getDate()}</div>
                                                 {hasSession && (
@@ -531,7 +535,7 @@ export default function SessionCalendarPage() {
                                                             <div 
                                                                 key={session.id} 
                                                                 className="session-pill"
-                                                                title={`Ficha: ${session.ficha.numero_ficha} - ${session.start_time}`}
+                                                                title={t('session_calendar.session_pill_title', { ficha: session.ficha.numero_ficha, time: session.start_time })}
                                                             >
                                                                 {session.ficha.numero_ficha} ({session.start_time})
                                                             </div>

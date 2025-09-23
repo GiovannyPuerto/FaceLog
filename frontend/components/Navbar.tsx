@@ -1,11 +1,18 @@
 "use client";
 
 import useAuth from '../hooks/useAuth';
-import { Navbar, Nav, Container, Button } from 'react-bootstrap';
+import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
+import '../i18n'; // Import the i18n configuration
 
 export default function AppNavbar() {
     const { user, logout } = useAuth();
+    const { t, i18n } = useTranslation();
+
+    const changeLanguage = (lng) => {
+        i18n.changeLanguage(lng);
+    };
 
     return (
         <>
@@ -222,7 +229,7 @@ export default function AppNavbar() {
 
             <Navbar className="modern-navbar" expand="lg">
                 <Container>
-                    <Navbar.Brand as={Link} href="/" className="modern-navbar-brand">
+                    <Navbar.Brand as={Link} href="#"className="modern-navbar-brand">
                         <div className="modern-brand-icon">
                             🔍
                         </div>
@@ -236,7 +243,7 @@ export default function AppNavbar() {
                             {user ? (
                                 <>
                                     <Navbar.Text className="modern-welcome-text">
-                                        Bienvenido, <span className="modern-user-name">{user.fullName}</span>
+                                        {t('welcome')}, <span className="modern-user-name">{user.fullName}</span>
                                         <span className="modern-user-role">{user.role}</span>
                                     </Navbar.Text>
                                     <Button 
@@ -244,19 +251,23 @@ export default function AppNavbar() {
                                         onClick={logout}
                                         className="modern-logout-btn"
                                     >
-                                         Logout
+                                         {t('logout')}
                                     </Button>
                                 </>
                             ) : (
                                 <>
                                     <Nav.Link as={Link} href="/login" className="modern-nav-link">
-                                         Login
+                                         {t('login')}
                                     </Nav.Link>
                                     <Nav.Link as={Link} href="/register" className="modern-nav-link">
-                                         Register
+                                         {t('register')}
                                     </Nav.Link>
                                 </>
                             )}
+                             <NavDropdown title={t('language')} id="basic-nav-dropdown">
+                                <NavDropdown.Item onClick={() => changeLanguage('es')}>Español</NavDropdown.Item>
+                                <NavDropdown.Item onClick={() => changeLanguage('en')}>English</NavDropdown.Item>
+                            </NavDropdown>
                         </Nav>
                     </Navbar.Collapse>
                 </Container>

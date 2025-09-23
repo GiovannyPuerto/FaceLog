@@ -5,6 +5,8 @@ import useAuth from '../../../hooks/useAuth';
 import Link from 'next/link';
 import api from '../../../lib/api';
 import { Container, Card, Row, Col, Button, Spinner } from 'react-bootstrap';
+import { useTranslation } from 'react-i18next';
+import '../../../i18n';
 
 const StatCard = ({ title, value, icon, color }) => (
     <Card className="modern-stat-card h-100">
@@ -16,7 +18,6 @@ const StatCard = ({ title, value, icon, color }) => (
                 {icon}
             </div>
             <div className="flex-grow-1">
-                <h1>Cambios</h1>
                 <h3 className="modern-stat-title mb-1">{title}</h3>
                 <p className="modern-stat-value mb-0">{value}</p>
             </div>
@@ -26,6 +27,7 @@ const StatCard = ({ title, value, icon, color }) => (
 
 export default function InstructorDashboard() {
     const { user } = useAuth();
+    const { t } = useTranslation();
     const [summary, setSummary] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -94,6 +96,7 @@ export default function InstructorDashboard() {
                     min-height: 100vh;
                     padding: 30px 15px;
                     transition: background-color 0.3s ease;
+                    border-radius: solid 20px;
                 }
 
                 .modern-title {
@@ -263,9 +266,9 @@ export default function InstructorDashboard() {
                     color: var(--button-gradient) !important;
                 }
 
-                .theme-toggle {
+                .theme-toggle {   
                     position: fixed;
-                    top: 20px;
+                    top: 15px;
                     right: 20px;
                     background: var(--bg-card);
                     border: 2px solid var(--border-color);
@@ -281,6 +284,7 @@ export default function InstructorDashboard() {
                     box-shadow: var(--shadow-card);
                     font-size: 1.2rem;
                     z-index: 9999;
+                    margin-left: 30px;
                 }
 
                 .theme-toggle:hover {
@@ -365,21 +369,21 @@ export default function InstructorDashboard() {
             <div className="modern-dashboard-container">
                 <div className="main-Content">
                     <h1 className="modern-title">
-                         Dashboard del Instructor
+                        {t('dashboard_title')}
                     </h1>
                     
                     {loading ? (
                         <div className="modern-loading">
                             <Spinner animation="border" className="modern-spinner" />
                             <div className="modern-loading-text">
-                                Cargando resumen del dashboard...
+                                {t('loading_summary')}
                             </div>
                         </div>
                     ) : summary && (
                         <Row className="g-4 mb-5">
                             <Col xs={12} sm={6} lg={3}>
                                 <StatCard 
-                                    title="Fichas Asignadas" 
+                                    title={t('assigned_fichas')} 
                                     value={summary.total_assigned_fichas} 
                                     icon="📚"
                                     color="var(--stat-primary)"
@@ -387,7 +391,7 @@ export default function InstructorDashboard() {
                             </Col>
                             <Col xs={12} sm={6} lg={3}>
                                 <StatCard 
-                                    title="Sesiones Hoy" 
+                                    title={t('today_sessions')} 
                                     value={summary.today_sessions} 
                                     icon="📅"
                                     color="var(--stat-success)"
@@ -395,7 +399,7 @@ export default function InstructorDashboard() {
                             </Col>
                             <Col xs={12} sm={6} lg={3}>
                                 <StatCard 
-                                    title="Excusas Pendientes" 
+                                    title={t('pending_excuses')} 
                                     value={summary.pending_excuses} 
                                     icon="⏳"
                                     color="var(--stat-warning)"
@@ -403,7 +407,7 @@ export default function InstructorDashboard() {
                             </Col>
                             <Col xs={12} sm={6} lg={3}>
                                 <StatCard 
-                                    title="Total Aprendices" 
+                                    title={t('total_students')} 
                                     value={summary.total_students_in_assigned_fichas} 
                                     icon="👥"
                                     color="var(--stat-info)"
@@ -415,16 +419,16 @@ export default function InstructorDashboard() {
                     <Card className="modern-action-card">
                         <Card.Body className="p-5 text-center">
                             <h2 className="modern-card-title">
-                                🔍 Gestionar Asistencia
+                                {t('attendance_manage_title')}
                             </h2>
                             <p className="modern-card-description">
-                                Inicia una nueva sesión de asistencia para una de tus fichas y registra a los aprendices usando reconocimiento facial avanzado.
+                                {t('attendance_manage_desc')}
                             </p>
                             <Link 
                                 href="/dashboard/instructor/attendance"
                                 className="modern-action-button"
                             >
-                                 Tomar Asistencia
+                                 {t('attendance_button')}
                             </Link>
                         </Card.Body>
                     </Card>

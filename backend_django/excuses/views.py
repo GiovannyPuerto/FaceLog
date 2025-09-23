@@ -31,7 +31,7 @@ class ExcuseViewSet(viewsets.ModelViewSet):
         if user.role == 'student':
             queryset = queryset.filter(student=user)
         if user.role == 'instructor':
-            queryset = queryset.filter(session__ficha__instructor=user)
+            queryset = queryset.filter(session__ficha__instructors=user)
         if user.role == 'admin':
             pass # Admins see all, no additional filter needed for them
         return queryset

@@ -6,70 +6,83 @@ import Link from 'next/link';
 import api from '../../../../../lib/api'; // Adjust path as needed
 import useAuth from '../../../../../hooks/useAuth'; // Adjust path as needed
 
-export default function FichaReportPage() {
+export default function FichaAttendancePage() {
     const { user } = useAuth();
     const params = useParams();
     const fichaId = params.id;
 
-    const [reportData, setReportData] = useState(null);
+    const [attendanceRecords, setAttendanceRecords] = useState([]);
+    const [fichaDetails, setFichaDetails] = useState(null); // New state for ficha details
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const fetchReport = async () => {
+    const fetchAttendance = async () => {
         if (!user || user.role !== 'instructor' || !fichaId) return;
-        console.log("Fetching report for fichaId:", fichaId); // Add this line
+        console.log("Fetching attendance for fichaId:", fichaId); // Add this line
         try {
             setLoading(true);
-            // Assuming an API endpoint for fetching report data for a specific ficha
+            // Assuming an API endpoint for fetching attendance for a specific ficha
             const response = await api.get(`attendance/fichas/${fichaId}/attendance-report/`);
-            const { ficha, sessions, students } = response.data;
+            const { sessions, students } = response.data;
 
-            let total_students = students.length;
-            let total_present = 0;
-            let total_absent = 0;
-            let total_late = 0;
-            const detailed_records = [];
-
+            const flattenedAttendanceRecords = [];
             students.forEach(student => {
                 for (const sessionId in student.attendances) {
                     const status = student.attendances[sessionId];
                     const session = sessions.find(s => s.id === parseInt(sessionId));
-
-                    if (status === 'present') total_present++;
-                    else if (status === 'absent') total_absent++;
-                    else if (status === 'late') total_late++;
-
                     if (session) {
-                        detailed_records.push({
+                                                flattenedAttendanceRecords.push({
+                            id: status.id, // Use the actual Attendance record ID from backend
                             student_name: student.full_name,
                             date: session.date,
-                            status: status,
-                            time: session.start_time, // Using start_time as time for now
+                            status: status.status, // Use the actual status value
+                            timestamp: session.start_time, // Using start_time as timestamp for now
                         });
                     }
                 }
             });
-
-            setReportData({
-                ficha: ficha,
-                total_students: total_students,
-                total_present: total_present,
-                total_absent: total_absent,
-                total_late: total_late,
-                detailed_records: detailed_records,
-            });
+            setAttendanceRecords(flattenedAttendanceRecords);
             setError(null);
         } catch (err) {
-            console.error("Failed to fetch report data", err);
-            setError("No se pudo cargar el reporte de la ficha.");
+            console.error("Failed to fetch attendance records", err);
+            setError("No se pudieron cargar los registros de asistencia.");
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchReport();
+        fetchAttendance();
     }, [user, fichaId]);
+
+    const getStatusColorClass = (status) => {
+        switch (status.toLowerCase()) {
+            case 'present': return 'bg-green-100 text-green-800 border-green-400';
+            case 'absent': return 'bg-red-100 text-red-800 border-red-400';
+            case 'late': return 'bg-yellow-100 text-yellow-800 border-yellow-400';
+            case 'excused': return 'bg-blue-100 text-blue-800 border-blue-400';
+            default: return 'bg-gray-100 text-gray-800 border-gray-400';
+        }
+    };
+
+    const handleStatusChange = async (attendanceId, newStatus) => {
+        try {
+            // Optimistically update the UI
+            setAttendanceRecords(prevRecords =>
+                prevRecords.map(record =>
+                    record.id === attendanceId ? { ...record, status: newStatus } : record
+                )
+            );
+
+            await api.patch(`/attendance/attendance-log/${attendanceId}/update/`, { status: newStatus });
+            // If successful, no need to re-fetch, UI is already updated
+        } catch (err) {
+            console.error("Failed to update attendance status", err);
+            setError("No se pudo actualizar el estado de asistencia.");
+            // Revert UI on error if optimistic update was done
+            fetchAttendance(); // Re-fetch to ensure data consistency
+        }
+    };
 
     return (
         <>
@@ -184,54 +197,26 @@ export default function FichaReportPage() {
                     margin-bottom: 1rem;
                 }
 
-                .report-section {
+                .attendance-table-container {
                     background: var(--bg-card);
                     border-radius: 20px;
                     box-shadow: var(--shadow-card);
-                    padding: 2rem;
+                    overflow-x: auto;
                     margin-top: 2rem;
                 }
 
-                .report-summary {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                    gap: 1.5rem;
-                    margin-bottom: 2rem;
-                }
-
-                .summary-item {
-                    background: var(--bg-secondary);
-                    border-radius: 15px;
-                    padding: 1.5rem;
-                    text-align: center;
-                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-                }
-
-                .summary-item h3 {
-                    color: var(--text-secondary);
-                    font-size: 1rem;
-                    margin-bottom: 0.5rem;
-                }
-
-                .summary-item p {
-                    color: var(--text-primary);
-                    font-size: 2rem;
-                    font-weight: 700;
-                }
-
-                .report-detail-table {
+                .attendance-table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin-top: 2rem;
                 }
 
-                .report-detail-table th, .report-detail-table td {
+                .attendance-table th, .attendance-table td {
                     padding: 1rem;
                     text-align: left;
                     border-bottom: 1px solid var(--divider-color);
                 }
 
-                .report-detail-table th {
+                .attendance-table th {
                     background: var(--bg-secondary);
                     color: var(--text-primary);
                     font-weight: 700;
@@ -239,12 +224,27 @@ export default function FichaReportPage() {
                     font-size: 0.9rem;
                 }
 
-                .report-detail-table td {
+                .attendance-table td {
                     color: var(--text-secondary);
                 }
 
-                .report-detail-table tbody tr:hover {
+                .attendance-table tbody tr:hover {
                     background: var(--bg-secondary);
+                }
+
+                .status-present {
+                    color: #28a745; /* Green */
+                    font-weight: 600;
+                }
+
+                .status-absent {
+                    color: #dc3545; /* Red */
+                    font-weight: 600;
+                }
+
+                .status-late {
+                    color: #ffc107; /* Yellow */
+                    font-weight: 600;
                 }
 
                 .back-button {
@@ -289,70 +289,57 @@ export default function FichaReportPage() {
                         ← Volver a Mis Fichas
                     </Link>
                     <h1 className="modern-title">
-                        Reporte de Ficha {reportData && reportData.ficha ? reportData.ficha.numero_ficha : fichaId}
+                        Asistencia de Ficha {fichaDetails ? fichaDetails.numero_ficha : fichaId}
                     </h1>
 
                     {loading ? (
                         <div className="loading-container">
                             <div className="loading-icon"></div>
-                            <div className="loading-text">Cargando reporte...</div>
+                            <div className="loading-text">Cargando registros de asistencia...</div>
                         </div>
                     ) : error ? (
                         <div className="error-container">
                             <div className="error-icon"></div>
                             <div className="error-text">Error: {error}</div>
                         </div>
-                    ) : reportData ? (
-                        <div className="report-section">
-                            <div className="report-summary">
-                                <div className="summary-item">
-                                    <h3>Total Aprendices</h3>
-                                    <p>{reportData.total_students}</p>
-                                </div>
-                                <div className="summary-item">
-                                    <h3>Asistencias</h3>
-                                    <p>{reportData.total_present}</p>
-                                </div>
-                                <div className="summary-item">
-                                    <h3>Ausencias</h3>
-                                    <p>{reportData.total_absent}</p>
-                                </div>
-                                <div className="summary-item">
-                                    <h3>Retardos</h3>
-                                    <p>{reportData.total_late}</p>
-                                </div>
-                            </div>
-
-                            {reportData.detailed_records && reportData.detailed_records.length > 0 && (
-                                <div className="report-detail-table-container">
-                                    <h2 className="text-xl font-bold text-gray-800 mb-4">Registros Detallados</h2>
-                                    <table className="report-detail-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Aprendiz</th>
-                                                <th>Fecha</th>
-                                                <th>Estado</th>
-                                                <th>Hora</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {reportData.detailed_records.map((record, index) => (
-                                                <tr key={index}>
-                                                    <td>{record.student_name}</td>
-                                                    <td>{new Date(record.date).toLocaleDateString('es-CO')}</td>
-                                                    <td>{record.status.status}</td>
-                                                    <td>{new Date(record.time).toLocaleTimeString('es-CO')}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
+                    ) : attendanceRecords.length > 0 ? (
+                        <div className="attendance-table-container">
+                            <table className="attendance-table">
+                                <thead>
+                                    <tr>
+                                        <th>Aprendiz</th>
+                                        <th>Fecha</th>
+                                        <th>Estado</th>
+                                        <th>Hora de Registro</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {attendanceRecords.map(record => (
+                                        <tr key={record.id}>
+                                            <td>{record.student_name}</td>
+                                            <td>{new Date(record.date).toLocaleDateString('es-CO')}</td>
+                                            <td>
+                                                <select
+                                                    value={record.status}
+                                                    onChange={(e) => handleStatusChange(record.id, e.target.value)}
+                                                    className={`p-1 rounded-md border ${getStatusColorClass(record.status)}`}
+                                                >
+                                                    <option value="present">Presente</option>
+                                                    <option value="absent">Ausente</option>
+                                                    <option value="late">Tarde</option>
+                                                    <option value="excused">Excusado</option>
+                                                </select>
+                                            </td>
+                                            <td>{new Date(record.timestamp).toLocaleTimeString('es-CO')}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     ) : (
                         <div className="empty-container">
                             <div className="empty-icon"></div>
-                            <div className="empty-text">No hay datos de reporte disponibles para esta ficha.</div>
+                            <div className="empty-text">No hay registros de asistencia para esta ficha.</div>
                         </div>
                     )}
                 </div>

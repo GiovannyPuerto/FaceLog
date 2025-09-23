@@ -16,7 +16,6 @@ const StatCard = ({ title, value, icon, color }) => (
                 {icon}
             </div>
             <div className="flex-grow-1">
-                <h1>Cambios</h1>
                 <h3 className="modern-stat-title mb-1">{title}</h3>
                 <p className="modern-stat-value mb-0">{value}</p>
             </div>

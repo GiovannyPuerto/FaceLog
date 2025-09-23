@@ -9,7 +9,7 @@ User = get_user_model()
 class SimpleUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'student_id']
 
 class FichaSerializer(serializers.ModelSerializer):
     """
@@ -87,7 +87,10 @@ class AttendanceSessionSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['ficha'] = SimpleFichaSerializer(instance.ficha).data
+        if instance.ficha:
+            representation['ficha'] = SimpleFichaSerializer(instance.ficha).data
+        else:
+            representation['ficha'] = None
         return representation
 
 class AttendanceLogSerializer(serializers.ModelSerializer):

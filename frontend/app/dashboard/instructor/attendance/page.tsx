@@ -506,7 +506,6 @@ export default function TakeAttendancePage() {
                     min-height: 100vh;
                     padding: 30px;
                     transition: background-color 0.3s ease;
-                    margin-left: 240px;
                 }
 
                 .modern-session-header {

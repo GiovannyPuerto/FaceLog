@@ -5,29 +5,29 @@ import Link from 'next/link';
 import api from '../../../lib/api';
 import useAuth from '../../../hooks/useAuth';
 
-export default function AdminDashboardPage() {
+export default function ApprenticeDashboardPage() {
     const { user } = useAuth();
-    const [reportData, setReportData] = useState(null);
+    const [summaryData, setSummaryData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const fetchGlobalReport = async () => {
-        if (!user || user.role !== 'admin') return;
+    const fetchSummary = async () => {
+        if (!user || user.role !== 'student') return;
         try {
             setLoading(true);
-            const response = await api.get('/api/v1/attendance/report/global/');
-            setReportData(response.data);
+            const response = await api.get('/api/v1/attendance/dashboard/apprentice/summary/');
+            setSummaryData(response.data);
             setError(null);
         } catch (err) {
-            console.error("Failed to fetch global report", err);
-            setError("No se pudo cargar el reporte global.");
+            console.error("Failed to fetch apprentice summary", err);
+            setError("No se pudo cargar el resumen del aprendiz.");
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchGlobalReport();
+        fetchSummary();
     }, [user]);
 
     return (
@@ -196,51 +196,46 @@ export default function AdminDashboardPage() {
             <div className="dashboard-container">
                 <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
                     <h1 className="modern-title">
-                        Dashboard de Administrador
+                        Dashboard de Aprendiz
                     </h1>
 
                     {loading ? (
                         <div className="loading-container">
                             <div className="loading-icon"></div>
-                            <div className="loading-text">Cargando reporte global...</div>
+                            <div className="loading-text">Cargando resumen del aprendiz...</div>
                         </div>
                     ) : error ? (
                         <div className="error-container">
                             <div className="error-icon"></div>
                             <div className="error-text">Error: {error}</div>
                         </div>
-                    ) : reportData ? (
+                    ) : summaryData ? (
                         <div className="summary-grid">
                             <div className="summary-card">
-                                <h3>Total de Fichas</h3>
-                                <p>{reportData.total_fichas}</p>
+                                <h3>Porcentaje de Asistencia</h3>
+                                <p>{summaryData.attendance_percentage}%</p>
                             </div>
                             <div className="summary-card">
-                                <h3>Total de Instructores</h3>
-                                <p>{reportData.total_instructors}</p>
-                            </div>
-                            <div className="summary-card">
-                                <h3>Total de Aprendices</h3>
-                                <p>{reportData.total_students}</p>
-                            </div>
-                            <div className="summary-card">
-                                <h3>Total de Sesiones</h3>
-                                <p>{reportData.total_sessions}</p>
-                            </div>
-                            <div className="summary-card">
-                                <h3>Total de Excusas</h3>
-                                <p>{reportData.total_excuses}</p>
+                                <h3>Sesiones Próximas</h3>
+                                <p>{summaryData.upcoming_sessions}</p>
                             </div>
                             <div className="summary-card">
                                 <h3>Excusas Pendientes</h3>
-                                <p>{reportData.pending_excuses_count}</p>
+                                <p>{summaryData.pending_excuses}</p>
                             </div>
-                            {/* Add more summary items as needed from reportData */}
+                            <div className="summary-card">
+                                <h3>Inasistencias</h3>
+                                <p>{summaryData.absent_count}</p>
+                            </div>
+                            <div className="summary-card">
+                                <h3>Retardos</h3>
+                                <p>{summaryData.late_count}</p>
+                            </div>
                         </div>
                     ) : (
                         <div className="empty-container">
                             <div className="empty-icon"></div>
-                            <div className="empty-text">No hay datos de reporte global disponibles.</div>
+                            <div className="empty-text">No hay datos de resumen disponibles para el aprendiz.</div>
                         </div>
                     )}
                 </div>

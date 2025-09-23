@@ -6,6 +6,8 @@ from PIL import Image
 from django.utils import timezone
 from datetime import datetime
 import logging
+from django.conf import settings
+from django.utils.timezone import make_aware
 
 from attendance.models import Attendance, Ficha
 from .models import FaceEncoding, FaceVerificationLog, FaceRecognitionSettings
@@ -90,7 +92,8 @@ def recognize_faces_in_stream(image_file, session_id):
                         session = attendance_record.session
                         now = timezone.now()
                         
-                        session_start_datetime = datetime.combine(session.date, session.start_time, tzinfo=now.tzinfo)
+                        # Ensure session_start_datetime is timezone-aware
+                        session_start_datetime = make_aware(datetime.combine(session.date, session.start_time))
                         grace_period_end = session_start_datetime + timezone.timedelta(minutes=session.permisividad)
                         
                         new_status = 'present' if now <= grace_period_end else 'late'

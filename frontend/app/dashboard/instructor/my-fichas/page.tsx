@@ -367,6 +367,46 @@ export default function MyFichasPage() {
                     box-shadow: var(--shadow-hover);
                 }
 
+                .action-link-button {
+                    background: var(--info-gradient); /* Using info-gradient for a different look */
+                    border: none;
+                    border-radius: 8px; /* Slightly smaller border-radius */
+                    padding: 8px 16px; /* Smaller padding */
+                    color: white;
+                    font-weight: 600; /* Slightly less bold */
+                    font-size: 0.9rem; /* Smaller font size */
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    text-decoration: none; /* Remove underline for links */
+                }
+
+                .action-link-button:hover {
+                    background: linear-gradient(135deg, #388bfd 0%, #4facfe 100%); /* Slightly darker hover for info-gradient */
+                    transform: translateY(-1px); /* Less pronounced hover effect */
+                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Smaller shadow */
+                }
+
+                .action-link-button.report {
+                    background: var(--button-gradient); /* Use original button gradient for report */
+                }
+
+                .action-link-button.report:hover {
+                    background: var(--button-hover);
+                }
+
+                .action-link-button.attendance {
+                    background: var(--success-gradient); /* Use success gradient for attendance */
+                }
+
+                .action-link-button.attendance:hover {
+                    background: linear-gradient(135deg, #2ea043 0%, #56ab2f 100%); /* Darker hover for success-gradient */
+                }
+
                 @media (max-width: 768px) {
                     .fichas-container {
                         padding: 20px 15px;
@@ -432,24 +472,7 @@ export default function MyFichasPage() {
             </div>
 
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {fichas.length > 0 ? (
-                    fichas.map(ficha => (
-                        <div key={ficha.id} className="bg-gray-800 shadow-lg rounded-lg p-6 hover:bg-gray-700 transition-transform hover:-translate-y-1 flex flex-col justify-between">
-                            <div>
-                                <h2 className="text-xl font-bold text-blue-400">Ficha: {ficha.numero_ficha}</h2>
-                                <p className="text-gray-300 mt-2">{ficha.programa_formacion}</p>
-                                <div className="text-sm text-gray-400 mt-4">
-                                    <p><strong>Jornada:</strong> {ficha.jornada}</p>
-                                    <p><strong>Inicio:</strong> {new Date(ficha.fecha_inicio).toLocaleDateString('es-CO')}</p>
-                                    <p><strong>Fin:</strong> {new Date(ficha.fecha_fin).toLocaleDateString('es-CO')}</p>
-                                </div>
-                                <div className="mt-4 pt-4 border-t border-gray-700">
-                                    <h3 className="text-md font-semibold text-gray-200">Aprendices: {ficha.students.length}</h3>
-                                </div>
-                            </div>
-                            <div className="mt-4 pt-4 border-t border-gray-700 flex justify-end">
-                                <Link href={`/dashboard/fichas/${ficha.id}/report`} className="text-blue-400 hover:text-blue-300 font-semibold">Ver Reporte</Link>
+            
 
             <div className="fichas-container">
                 <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
@@ -536,6 +559,10 @@ export default function MyFichasPage() {
                                             <div className="students-count">
                                                 <div className="students-icon"></div>
                                                 <span>Aprendices: {ficha.students.length}</span>
+                                            </div>
+                                            <div className="mt-4 pt-4 border-t border-gray-700 flex justify-end gap-4">
+                                                <Link href={`/dashboard/fichas/${ficha.id}/report`} className="action-link-button report">Ver Reporte</Link>
+                                                <Link href={`/dashboard/fichas/${ficha.id}/attendance`} className="action-link-button attendance">Ver Asistencias</Link>
                                             </div>
                                         </div>
                                     </div>

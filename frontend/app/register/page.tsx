@@ -85,39 +85,40 @@ const CameraCaptureModal = ({ isOpen, onClose, onCapture }) => {
 // --- Main Register Page Component (using react-bootstrap) ---
 export default function RegisterPage() {
     const [formData, setFormData] = useState({ username: '', email: '', password: '', password2: '', first_name: '', last_name: '', student_id: '', ficha_numero: '' });
-    const [faceImages, setFaceImages] = useState([]); // Array of File objects
-    const [faceImagePreviews, setFaceImagePreviews] = useState([]); // Array of URL strings
-    const [isCameraOpen, setIsCameraOpen] = useState(false);
     const { register, error, loading } = useAuth();
+
+    // New state variables
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const [faceImages, setFaceImages] = useState([]); // Stores actual image files/blobs
+    const [faceImagePreviews, setFaceImagePreviews] = useState([]); // Stores URLs for previews
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-    const handleCapture = (blob) => {
-        const file = new File([blob], `face_capture_${Date.now()}.jpg`, { type: "image/jpeg" });
-        const previewUrl = URL.createObjectURL(file);
-        setFaceImages(prev => [...prev, file]);
-        setFaceImagePreviews(prev => [...prev, previewUrl]);
+    // New functions
+    const handleCapture = (imageBlob) => {
+        const newImage = new File([imageBlob], `face_${Date.now()}.jpeg`, { type: 'image/jpeg' });
+        setFaceImages((prevImages) => [...prevImages, newImage]);
+        setFaceImagePreviews((prevPreviews) => [...prevPreviews, URL.createObjectURL(imageBlob)]);
+        // Optionally close the modal after capture, or keep it open for multiple captures
+        // setIsCameraOpen(false);
     };
 
     const handleRemoveImage = (indexToRemove) => {
-        setFaceImages(prev => prev.filter((_, index) => index !== indexToRemove));
-        setFaceImagePreviews(prev => {
-            URL.revokeObjectURL(prev[indexToRemove]); // Clean up URL object
-            return prev.filter((_, index) => index !== indexToRemove);
-        });
+        setFaceImages((prevImages) => prevImages.filter((_, index) => index !== indexToRemove));
+        setFaceImagePreviews((prevPreviews) => prevPreviews.filter((_, index) => index !== indexToRemove));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (formData.password !== formData.password2) { alert("Las contraseñas no coinciden."); return; }
-        if (faceImages.length === 0) { alert("Por favor, toma al menos una foto de tu rostro para el registro."); return; }
 
         const dataToSubmit = new FormData();
         for (const key in formData) {
             dataToSubmit.append(key, formData[key]);
         }
-        faceImages.forEach((file, index) => {
-            dataToSubmit.append(`face_images[${index}]`, file); // Append each file with a unique name
+        // Append face images to formData
+        faceImages.forEach((image) => {
+            dataToSubmit.append('face_images', image);
         });
 
         await register(dataToSubmit);

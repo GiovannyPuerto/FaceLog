@@ -97,7 +97,7 @@ export default function StudentDashboardPage() {
                                         <p className="font-semibold text-white">Sesión del {new Date(absence.session.date).toLocaleDateString('es-CO')}</p>
                                         <p className="text-sm text-gray-400">Ficha: {absence.session.ficha.numero_ficha}</p>
                                     </div>
-                                    <Link href={`/dashboard/student/manage-excuses?session_id=${absence.session.id}`} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">
+                                    <Link href={`/dashboard/student/excuses?session_id=${absence.session.id}`} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">
                                         Justificar
                                     </Link>
                                 </li>

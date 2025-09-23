@@ -252,6 +252,7 @@ class ManualAttendanceUpdateView(generics.UpdateAPIView):
     
 
 class AttendanceLogViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Attendance.objects.all()
     """
     ViewSet para que los usuarios vean sus registros de asistencia.
     - Estudiantes: Ven solo sus propios registros.
@@ -266,16 +267,35 @@ class AttendanceLogViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         queryset = super().get_queryset()
         try:
+            print(f"DEBUG: User role in AttendanceLogViewSet: {user.role}")
             if user.role == 'student':
                 queryset = queryset.filter(student=user)
+                print(f"DEBUG: Student queryset: {queryset.query}")
             elif user.role == 'instructor':
                 queryset = queryset.filter(session__ficha__instructors=user)
+                print(f"DEBUG: Instructor queryset: {queryset.query}")
             # Admins see all, no additional filter needed for them
+            print(f"DEBUG: Final queryset count in AttendanceLogViewSet: {queryset.count()}")
             return queryset
         except Exception as e:
-            print(f"Error in AttendanceLogViewSet get_queryset: {e}")
+            print(f"ERROR: Exception in AttendanceLogViewSet get_queryset: {e}")
             traceback.print_exc()
-            raise e
+            # Return an empty queryset on error to prevent 500 and allow frontend to handle gracefully
+            return self.queryset.none()
+
+    def list(self, request, *args, **kwargs):
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            error_message = f"An unexpected error occurred while fetching attendance logs: {str(e)}"
+            traceback.print_exc()
+            return Response({"error": error_message, "traceback": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class GlobalReportView(generics.GenericAPIView):
     """
@@ -500,7 +520,7 @@ class FichaAttendanceReportView(generics.GenericAPIView):
 
         student_attendances = {student.id: {} for student in students}
         for att in attendances:
-            student_attendances[att.student_id][att.session_id] = att.status
+            student_attendances[att.student_id][att.session_id] = {"id": att.id, "status": att.status}
 
         response_data = {
             "ficha": {

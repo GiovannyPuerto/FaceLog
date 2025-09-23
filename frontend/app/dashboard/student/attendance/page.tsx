@@ -27,7 +27,10 @@ export default function StudentAttendancePage() {
         try {
             setLoading(true);
             setError(null);
-            const response = await api.get('attendance/attendance-logs/', { params: filters });
+            const cleanedFilters = Object.fromEntries(
+                Object.entries(filters).filter(([_, v]) => v != null && v !== '')
+            );
+            const response = await api.get('attendance/attendance-logs/', { params: cleanedFilters });
             setLogs(response.data.results || response.data);
         } catch (err) {
             console.error("Failed to fetch attendance logs", err);

@@ -16,20 +16,19 @@ class IsInstructorOfFicha(permissions.BasePermission):
     Permiso para verificar si el usuario es el instructor de la ficha asociada al objeto.
     """
     def has_object_permission(self, request, view, obj):
-        # Para vistas que tienen get_permission_object(), como ManualAttendanceUpdateView
-        if hasattr(view, 'get_permission_object'):
-            ficha = view.get_permission_object()
-            return ficha.instructors.filter(id=request.user.id).exists()
+        from .models import Ficha, AttendanceSession, Attendance
 
-        # Para objetos Ficha
-        if hasattr(obj, 'instructors'): # Check for 'instructors' ManyToManyField
-            print(f"DEBUG: IsInstructorOfFicha - Checking Ficha object. User ID: {request.user.id}, Ficha ID: {obj.id}, Ficha Instructors: {[i.id for i in obj.instructors.all()]}")
-            return obj.instructors.filter(id=request.user.id).exists()
+        ficha = None
+        if isinstance(obj, Ficha):
+            ficha = obj
+        elif isinstance(obj, AttendanceSession):
+            ficha = obj.ficha
+        elif isinstance(obj, Attendance):
+            ficha = obj.session.ficha
         
-        # Para objetos AttendanceSession
-        if hasattr(obj, 'ficha') and hasattr(obj.ficha, 'instructors'):
-            return obj.ficha.instructors.filter(id=request.user.id).exists()
-        
+        if ficha:
+            return ficha.instructors.filter(id=request.user.id).exists()
+            
         return False
 
 class IsStudentInFicha(permissions.BasePermission):

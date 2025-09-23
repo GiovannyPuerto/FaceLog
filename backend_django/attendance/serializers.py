@@ -9,7 +9,7 @@ User = get_user_model()
 class SimpleUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'student_id']
 
 class FichaSerializer(serializers.ModelSerializer):
     """
@@ -78,12 +78,20 @@ class AttendanceSessionSerializer(serializers.ModelSerializer):
     """
     Serializador para las sesiones de asistencia.
     """
-    ficha = SimpleFichaSerializer(read_only=True) # Nested serializer
+    ficha = serializers.PrimaryKeyRelatedField(queryset=Ficha.objects.all())
 
     class Meta:
         model = AttendanceSession
         fields = '__all__'
         read_only_fields = ['id', 'created_at']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if instance.ficha:
+            representation['ficha'] = SimpleFichaSerializer(instance.ficha).data
+        else:
+            representation['ficha'] = None
+        return representation
 
 class AttendanceLogSerializer(serializers.ModelSerializer):
     """
@@ -104,3 +112,9 @@ class AttendanceLogUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Attendance
         fields = ['status'] # Solo se puede cambiar el estado
+
+class SimpleAttendanceSessionSerializer(serializers.ModelSerializer):
+    ficha = SimpleFichaSerializer(read_only=True)
+    class Meta:
+        model = AttendanceSession
+        fields = ['id', 'date', 'start_time', 'end_time', 'ficha']

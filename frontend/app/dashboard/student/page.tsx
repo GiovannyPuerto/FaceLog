@@ -1,106 +1,111 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
-import useAuth from '../../../hooks/useAuth';
 import api from '../../../lib/api';
+import useAuth from '../../../hooks/useAuth';
+import Link from 'next/link';
 
-// Helper to get color based on status
-const getStatusColor = (status) => {
-    switch (status) {
-        case 'present':
-            return 'bg-green-500';
-        case 'absent':
-            return 'bg-red-500';
-        case 'late':
-            return 'bg-yellow-500';
-        case 'excused':
-            return 'bg-blue-500';
-        default:
-            return 'bg-gray-500';
-    }
-};
+const StatCard = ({ title, value, description }) => (
+    <div className="bg-gray-800 p-6 rounded-lg shadow-lg hover:bg-gray-700 transition-transform hover:-translate-y-1">
+        <h3 className="text-lg font-semibold text-gray-400">{title}</h3>
+        <p className="text-3xl font-bold text-white mt-2">{value}</p>
+        {description && <p className="text-sm text-gray-500 mt-1">{description}</p>}
+    </div>
+);
 
-export default function StudentDashboard() {
+export default function StudentDashboardPage() {
     const { user } = useAuth();
     const [summary, setSummary] = useState(null);
-    const [logs, setLogs] = useState([]);
+    const [upcomingSessions, setUpcomingSessions] = useState([]);
+    const [absences, setAbsences] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchData = async () => {
-            if (user?.role !== 'student') return;
-            setLoading(true);
+        const fetchDashboardData = async () => {
+            if (!user || user.role !== 'student') return;
             try {
-                const [summaryRes, logsRes] = await Promise.all([
+                setLoading(true);
+                const [summaryRes, upcomingRes, absencesRes] = await Promise.all([
                     api.get('attendance/dashboard/apprentice/summary/'),
-                    api.get('attendance/attendance-logs/')
+                    api.get('attendance/dashboard/apprentice/upcoming-sessions/'),
+                    api.get('attendance/absences/')
                 ]);
                 setSummary(summaryRes.data);
-                setLogs(logsRes.data);
-            } catch (error) {
-                console.error("Failed to fetch student data", error);
+                setUpcomingSessions(upcomingRes.data.results || upcomingRes.data);
+                setAbsences(absencesRes.data.results || absencesRes.data);
+            } catch (err) {
+                setError("No se pudo cargar la información del dashboard.");
+                console.error(err);
             } finally {
                 setLoading(false);
             }
         };
 
-        if(user) fetchData();
+        fetchDashboardData();
     }, [user]);
 
-    if (loading) {
-        return <div className="text-center p-10">Cargando dashboard...</div>;
-    }
+    if (loading) return <div className="text-center p-10">Cargando dashboard...</div>;
+    if (error) return <div className="text-center p-10 text-red-500">Error: {error}</div>;
+    if (!summary) return <div className="text-center p-10">No hay datos para mostrar.</div>;
 
     return (
         <div className="space-y-8">
-            <h1 className="text-3xl font-bold text-white">Mi Dashboard de Aprendiz</h1>
-            
-            {summary && (
-                <div>
-                    <h2 className="text-2xl font-semibold text-gray-300 mb-4">Mi Resumen</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-                            <h3 className="text-lg font-medium text-gray-400">Porcentaje de Asistencia</h3>
-                            <p className="text-4xl font-bold text-green-400 mt-2">{summary.attendance_percentage}%</p>
-                        </div>
-                        <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-                            <h3 className="text-lg font-medium text-gray-400">Inasistencias</h3>
-                            <p className="text-4xl font-bold text-red-400 mt-2">{summary.absent_count}</p>
-                        </div>
-                        <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-                            <h3 className="text-lg font-medium text-gray-400">Llegadas Tarde</h3>
-                            <p className="text-4xl font-bold text-yellow-400 mt-2">{summary.late_count}</p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             <div>
-                <h2 className="text-2xl font-semibold text-gray-300 mb-4">Mi Historial de Asistencia</h2>
-                <div className="bg-gray-800 shadow-lg rounded-lg overflow-hidden">
-                    <ul className="divide-y divide-gray-700">
-                        {logs.length > 0 ? (
-                            logs.map(log => (
-                                <li key={log.id} className="p-4 flex justify-between items-center hover:bg-gray-700 transition-colors">
+                <h1 className="text-3xl font-bold text-white">Hola, {user?.first_name || user?.username}!</h1>
+                <p className="text-gray-400">Aquí tienes un resumen de tu actividad.</p>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard title="Asistencia General" value={`${summary.attendance_percentage}%`} />
+                <StatCard title="Inasistencias" value={summary.absent_count} />
+                <StatCard title="Tardanzas" value={summary.late_count} />
+                <StatCard title="Excusas Pendientes" value={summary.pending_excuses} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Upcoming Sessions */}
+                <div className="bg-gray-800 shadow-lg rounded-lg p-6">
+                    <h2 className="text-xl font-semibold text-white mb-4">Próximas Sesiones</h2>
+                    {upcomingSessions.length > 0 ? (
+                        <ul className="space-y-4">
+                            {upcomingSessions.slice(0, 5).map(session => (
+                                <li key={session.id} className="flex justify-between items-center bg-gray-700 p-3 rounded-md">
                                     <div>
-                                        <p className="font-semibold text-white">{new Date(log.session.date).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                                        <p className="text-sm text-gray-400">Ficha: {log.session.ficha.numero_ficha}</p>
-                                    </div>
-                                    <div className="flex items-center space-x-4">
-                                        {log.check_in_time && (
-                                            <span className="text-sm text-gray-400">Hora: {new Date(log.check_in_time).toLocaleTimeString()}</span>
-                                        )}
-                                        <span className={`px-3 py-1 text-sm font-semibold text-white rounded-full ${getStatusColor(log.status)}`}>
-                                            {log.status}
-                                        </span>
+                                        <p className="font-semibold text-white">{session.ficha.programa_formacion} (Ficha: {session.ficha.numero_ficha})</p>
+                                        <p className="text-sm text-gray-400">
+                                            {new Date(session.date).toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} - {session.start_time}
+                                        </p>
                                     </div>
                                 </li>
-                            ))
-                        ) : (
-                            <p className="p-4 text-gray-400">No se encontraron registros de asistencia.</p>
-                        )}
-                    </ul>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-gray-400">No tienes sesiones programadas.</p>
+                    )}
+                </div>
+
+                {/* Recent Absences */}
+                <div className="bg-gray-800 shadow-lg rounded-lg p-6">
+                    <h2 className="text-xl font-semibold text-white mb-4">Inasistencias Recientes</h2>
+                    {absences.length > 0 ? (
+                        <ul className="space-y-4">
+                            {absences.slice(0, 5).map(absence => (
+                                <li key={absence.id} className="flex justify-between items-center bg-gray-700 p-3 rounded-md">
+                                    <div>
+                                        <p className="font-semibold text-white">Sesión del {new Date(absence.session.date).toLocaleDateString('es-CO')}</p>
+                                        <p className="text-sm text-gray-400">Ficha: {absence.session.ficha.numero_ficha}</p>
+                                    </div>
+                                    <Link href={`/dashboard/student/excuses?session_id=${absence.session.id}`} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">
+                                        Justificar
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-gray-400">¡Felicidades! No tienes inasistencias.</p>
+                    )}
                 </div>
             </div>
         </div>

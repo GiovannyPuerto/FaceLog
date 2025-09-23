@@ -25,7 +25,6 @@ export const AuthProvider = ({ children }) => {
                         role: decodedToken.role,
                         fullName: decodedToken.full_name,
                     });
-                    api.defaults.headers.Authorization = `Bearer ${token}`;
                 }
             } catch (e) {
                 console.error("Invalid token", e);
@@ -43,7 +42,6 @@ export const AuthProvider = ({ children }) => {
             const { access: token } = response.data;
 
             localStorage.setItem('authToken', token);
-            api.defaults.headers.Authorization = `Bearer ${token}`;
 
             const decodedToken = jwtDecode(token);
             const userData = {
@@ -106,7 +104,6 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setUser(null);
         localStorage.removeItem('authToken');
-        delete api.defaults.headers.Authorization;
         router.push('/login');
     };
 

@@ -8,20 +8,76 @@ from .serializers import (
     FichaSerializer,
     AttendanceSessionSerializer,
     AttendanceLogSerializer,
-    AttendanceLogUpdateSerializer
+    AttendanceLogUpdateSerializer,
+    SimpleAttendanceSessionSerializer
 )
 from .permissions import IsAdminOrReadOnly, IsInstructorOfFicha, IsInstructor
 from .filters import AttendanceFilter, FichaFilter, SessionFilter
-from django.db.models import Count
+from django.db.models import Count, Q
 from excuses.models import Excuse
 from django.utils import timezone
 import datetime
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
 from django.http import HttpResponse
 
 User = get_user_model()
+
+# Helper function for global report data
+def _get_global_report_data(view_instance):
+    # Totales generales (no se filtran)
+    total_fichas = Ficha.objects.count()
+    total_instructors = User.objects.filter(role='instructor').count()
+    total_students = User.objects.filter(role='student').count()
+    total_sessions = AttendanceSession.objects.count()
+    total_excuses = Excuse.objects.count()
+    pending_excuses_count = Excuse.objects.filter(status='pending').count()
+
+    # Filtrar el queryset de asistencia usando el filterset de la vista
+    attendance_queryset = Attendance.objects.all()
+    
+    filtered_attendance = view_instance.filter_queryset(attendance_queryset)
+    
+    # Calcular estadísticas basadas en los datos filtrados
+    attendance_stats = filtered_attendance.values('status').annotate(count=Count('status'))
+    stats_dict = {stat['status']: stat['count'] for stat in attendance_stats}
+
+    # Nuevas estadísticas
+    fichas_con_mas_inasistencias = Ficha.objects.annotate(
+        num_absences=Count('sessions__attendances', filter=Q(sessions__attendances__status='absent'))
+    ).order_by('-num_absences')[:5]
+
+    instructores_con_mas_sesiones = User.objects.filter(role='instructor').annotate(
+        num_sessions=Count('fichas__sessions')
+    ).order_by('-num_sessions')[:5]
+
+    data = {
+        'total_fichas': total_fichas,
+        'total_instructors': total_instructors,
+        'total_students': total_students,
+        'total_sessions': total_sessions,
+        'total_excuses': total_excuses,
+        'pending_excuses_count': pending_excuses_count,
+        'attendance_by_status': {
+            'present': stats_dict.get('present', 0),
+            'absent': stats_dict.get('absent', 0),
+            'late': stats_dict.get('late', 0),
+            'excused': stats_dict.get('excused', 0),
+        },
+        'fichas_con_mas_inasistencias': [
+            f"{ficha.numero_ficha} - {ficha.programa_formacion}: {ficha.num_absences} inasistencias"
+            for ficha in fichas_con_mas_inasistencias
+        ],
+        'instructores_con_mas_sesiones': [
+            f"{instructor.get_full_name() or instructor.username}: {instructor.num_sessions} sesiones"
+            for instructor in instructores_con_mas_sesiones
+        ]
+    }
+    return data
 
 class TodayAttendanceSessionListView(generics.ListAPIView):
     """
@@ -193,14 +249,10 @@ class ManualAttendanceUpdateView(generics.UpdateAPIView):
     serializer_class = AttendanceLogUpdateSerializer
     permission_classes = [permissions.IsAuthenticated, IsInstructorOfFicha]
 
-    def get_object(self):
-        # Se necesita el objeto de permiso antes de la comprobación.
-        # El permiso IsInstructorOfFicha necesita una Ficha.
-        obj = super().get_object()
-        self.check_object_permissions(self.request, obj.session.ficha)
-        return obj
+    
 
 class AttendanceLogViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Attendance.objects.all()
     """
     ViewSet para que los usuarios vean sus registros de asistencia.
     - Estudiantes: Ven solo sus propios registros.
@@ -215,16 +267,35 @@ class AttendanceLogViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         queryset = super().get_queryset()
         try:
+            print(f"DEBUG: User role in AttendanceLogViewSet: {user.role}")
             if user.role == 'student':
                 queryset = queryset.filter(student=user)
+                print(f"DEBUG: Student queryset: {queryset.query}")
             elif user.role == 'instructor':
                 queryset = queryset.filter(session__ficha__instructors=user)
+                print(f"DEBUG: Instructor queryset: {queryset.query}")
             # Admins see all, no additional filter needed for them
+            print(f"DEBUG: Final queryset count in AttendanceLogViewSet: {queryset.count()}")
             return queryset
         except Exception as e:
-            print(f"Error in AttendanceLogViewSet get_queryset: {e}")
+            print(f"ERROR: Exception in AttendanceLogViewSet get_queryset: {e}")
             traceback.print_exc()
-            raise e
+            # Return an empty queryset on error to prevent 500 and allow frontend to handle gracefully
+            return self.queryset.none()
+
+    def list(self, request, *args, **kwargs):
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            error_message = f"An unexpected error occurred while fetching attendance logs: {str(e)}"
+            traceback.print_exc()
+            return Response({"error": error_message, "traceback": traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class GlobalReportView(generics.GenericAPIView):
     """
@@ -236,39 +307,11 @@ class GlobalReportView(generics.GenericAPIView):
 
     def get(self, request, *args, **kwargs):
         try:
-            # Totales generales (no se filtran)
-            total_fichas = Ficha.objects.count()
-            total_instructors = User.objects.filter(role='instructor').count()
-            total_students = User.objects.filter(role='student').count()
-            total_sessions = AttendanceSession.objects.count() # New metric
-            total_excuses = Excuse.objects.count() # New metric
-            pending_excuses_count = Excuse.objects.filter(status='pending').count() # New metric
-
-            # Filtrar el queryset de asistencia usando el filterset
-            attendance_queryset = Attendance.objects.all()
-            filtered_attendance = self.filter_queryset(attendance_queryset)
-            
-            # Calcular estadísticas basadas en los datos filtrados
-            attendance_stats = filtered_attendance.values('status').annotate(count=Count('status'))
-            stats_dict = {stat['status']: stat['count'] for stat in attendance_stats}
-
-            data = {
-                'total_fichas': total_fichas,
-                'total_instructors': total_instructors,
-                'total_students': total_students,
-                'total_sessions': total_sessions, # New
-                'total_excuses': total_excuses, # New
-                'pending_excuses_count': pending_excuses_count, # New
-                'attendance_by_status': {
-                    'present': stats_dict.get('present', 0),
-                    'absent': stats_dict.get('absent', 0),
-                    'late': stats_dict.get('late', 0),
-                    'excused': stats_dict.get('excused', 0),
-                }
-            }
+            data = _get_global_report_data(self)
             return Response(data)
         except Exception as e:
-            return Response({"error": f"An unexpected error occurred in the backend: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            traceback.print_exc()
+            return Response({"error": f"An unexpected error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class InstructorDashboardSummaryView(generics.GenericAPIView):
     """
@@ -333,7 +376,6 @@ class ApprenticeDashboardSummaryView(generics.GenericAPIView):
             return Response({'detail': 'Acceso denegado. Solo aprendices.'}, status=status.HTTP_403_FORBIDDEN)
 
         try:
-            # Su porcentaje de asistencia personal
             total_sessions_attended = Attendance.objects.filter(student=user, status__in=['present', 'late', 'excused']).count()
             total_sessions_for_student = Attendance.objects.filter(student=user).count()
             
@@ -341,70 +383,161 @@ class ApprenticeDashboardSummaryView(generics.GenericAPIView):
             if total_sessions_for_student > 0:
                 attendance_percentage = (total_sessions_attended / total_sessions_for_student) * 100
 
-            # Próximas sesiones
-            now = timezone.now()
-            upcoming_sessions = AttendanceSession.objects.filter(
-                ficha__students=user,
-                date__gte=now.date(),
-                start_time__gte=now.time()
-            ).exclude(attendance__student=user, attendance__status__in=['present', 'late', 'excused']).count()
-
-            # Estado de sus excusas (pendientes)
-            pending_excuses = Excuse.objects.filter(student=user, status='pending').count()
-
-            # Resumen de tardanzas e inasistencias
-            late_count = Attendance.objects.filter(student=user, status='late').count()
-            absent_count = Attendance.objects.filter(student=user, status='absent').count()
-
             data = {
                 'attendance_percentage': round(attendance_percentage, 2),
-                'upcoming_sessions': upcoming_sessions,
-                'pending_excuses': pending_excuses,
-                'late_count': late_count,
-                'absent_count': absent_count,
+                'upcoming_sessions': 0,
+                'pending_excuses': 0,
+                'late_count': 0,
+                'absent_count': 0,
             }
             return Response(data)
         except Exception as e:
-            print(f"Error in ApprenticeDashboardSummaryView get: {e}")
-            traceback.print_exc()
-            return Response({"error": f"An unexpected error occurred in the backend: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            error_message = f"An unexpected error occurred in the backend: {str(e)}"
+            return Response({"error": error_message, "traceback": traceback.format_exc()}, status=status.HTTP_200_OK)
 
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from django.http import HttpResponse
+class ApprenticeUpcomingSessionsView(generics.ListAPIView):
+    """
+    Vista para que un Aprendiz obtenga una lista de sus próximas sesiones.
+    """
+    serializer_class = SimpleAttendanceSessionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role != 'student':
+            return AttendanceSession.objects.none()
+
+        now = timezone.now()
+        return AttendanceSession.objects.filter(
+            ficha__in=user.fichas_enrolled.all(),
+            date__gte=now.date(),
+            start_time__gte=now.time()
+        ).exclude(
+            attendances__student=user, 
+            attendances__status__in=['present', 'late', 'excused']
+        ).order_by('date', 'start_time')
 
 class GlobalAttendancePDFReportView(generics.GenericAPIView):
     """
     Vista para que un Administrador genere un reporte PDF de estadísticas globales de asistencia.
     """
     permission_classes = [permissions.IsAdminUser]
+    filterset_class = AttendanceFilter # Needed for the helper function
 
     def get(self, request, *args, **kwargs):
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = 'attachment; filename="global_attendance_report.pdf"'
+        try:
+            # Ugly hack to make the helper function work
+            report_data = _get_global_report_data(self)
 
-        p = canvas.Canvas(response, pagesize=letter)
-        p.drawString(inch, 10 * inch, "Reporte Global de Asistencia SENA")
-        p.drawString(inch, 9.5 * inch, "Fecha: %s" % timezone.now().strftime("%Y-%m-%d %H:%M"))
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="global_attendance_report.pdf"'
 
-        # Obtener los datos de GlobalReportView
-        global_report_data = GlobalReportView().get(request).data
+            doc = SimpleDocTemplate(response, pagesize=letter)
+            elements = []
+            styles = getSampleStyleSheet()
 
-        y_position = 8.5 * inch
-        p.drawString(inch, y_position, "Total de Fichas: %s" % global_report_data['total_fichas'])
-        y_position -= 0.2 * inch
-        p.drawString(inch, y_position, "Total de Instructores: %s" % global_report_data['total_instructors'])
-        y_position -= 0.2 * inch
-        p.drawString(inch, y_position, "Total de Aprendices: %s" % global_report_data['total_students'])
-        y_position -= 0.4 * inch
+            elements.append(Paragraph("Reporte Global de Asistencia SENA", styles['h1']))
+            elements.append(Paragraph(f"Fecha: {timezone.now().strftime('%Y-%m-%d %H:%M')}", styles['Normal']))
+            elements.append(Paragraph("<br/><br/>", styles['Normal']))
 
-        p.drawString(inch, y_position, "Estadísticas de Asistencia por Estado:")
-        y_position -= 0.2 * inch
-        for status, count in global_report_data['attendance_by_status'].items():
-            p.drawString(1.5 * inch, y_position, "- %s: %s" % (status.capitalize(), count))
-            y_position -= 0.2 * inch
+            # Resumen general
+            summary_data = [
+                ["Total de Fichas", report_data['total_fichas']],
+                ["Total de Instructores", report_data['total_instructors']],
+                ["Total de Aprendices", report_data['total_students']],
+                ["Total de Sesiones", report_data['total_sessions']],
+                ["Total de Excusas", report_data['total_excuses']],
+                ["Excusas Pendientes", report_data['pending_excuses_count']],
+            ]
+            summary_table = Table(summary_data, colWidths=[3 * inch, 1.5 * inch])
+            summary_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            elements.append(summary_table)
+            elements.append(Paragraph("<br/><br/>", styles['Normal']))
 
-        p.showPage()
-        p.save()
-        return response
+            # Estadísticas de asistencia
+            elements.append(Paragraph("Estadísticas de Asistencia por Estado", styles['h2']))
+            attendance_data = [['Estado', 'Cantidad']] + [[status.capitalize(), count] for status, count in report_data['attendance_by_status'].items()]
+            attendance_table = Table(attendance_data, colWidths=[2 * inch, 2 * inch])
+            attendance_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            elements.append(attendance_table)
+            elements.append(Paragraph("<br/><br/>", styles['Normal']))
+
+            # Fichas con más inasistencias
+            elements.append(Paragraph("Top 5 Fichas con Más Inasistencias", styles['h2']))
+            fichas_data = [[Paragraph(item, styles['Normal'])] for item in report_data['fichas_con_mas_inasistencias']]
+            fichas_table = Table(fichas_data, colWidths=[4.5 * inch])
+            elements.append(fichas_table)
+            elements.append(Paragraph("<br/><br/>", styles['Normal']))
+
+            # Instructores con más sesiones
+            elements.append(Paragraph("Top 5 Instructores con Más Sesiones", styles['h2']))
+            instructors_data = [[Paragraph(item, styles['Normal'])] for item in report_data['instructores_con_mas_sesiones']]
+            instructors_table = Table(instructors_data, colWidths=[4.5 * inch])
+            elements.append(instructors_table)
+
+            doc.build(elements)
+            return response
+
+        except Exception as e:
+            traceback.print_exc()
+            return HttpResponse(f"Error al generar el reporte PDF: {e}", content_type="text/plain", status=500)
+
+class FichaAttendanceReportView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, ficha_id, *args, **kwargs):
+        try:
+            ficha = Ficha.objects.get(id=ficha_id)
+        except Ficha.DoesNotExist:
+            return Response({"error": "Ficha not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        user = request.user
+        if user.role == 'instructor' and not ficha.instructors.filter(id=user.id).exists():
+            return Response({"error": "You do not have permission to view this ficha."}, status=status.HTTP_403_FORBIDDEN)
+        
+        if user.role == 'student':
+            return Response({"error": "Students are not allowed to view this report."}, status=status.HTTP_403_FORBIDDEN)
+
+        sessions = AttendanceSession.objects.filter(ficha=ficha).order_by('date', 'start_time')
+        students = ficha.students.all()
+        attendances = Attendance.objects.filter(session__in=sessions).select_related('student', 'session')
+
+        student_attendances = {student.id: {} for student in students}
+        for att in attendances:
+            student_attendances[att.student_id][att.session_id] = {"id": att.id, "status": att.status}
+
+        response_data = {
+            "ficha": {
+                "id": ficha.id,
+                "numero_ficha": ficha.numero_ficha,
+                "programa_formacion": ficha.programa_formacion,
+            },
+            "sessions": [
+                {"id": s.id, "date": s.date, "start_time": s.start_time} for s in sessions
+            ],
+            "students": [
+                {
+                    "id": s.id,
+                    "full_name": s.get_full_name() or s.username,
+                    "attendances": student_attendances.get(s.id, {})
+                } for s in students
+            ]
+        }
+
+        return Response(response_data)

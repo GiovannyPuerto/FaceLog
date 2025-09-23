@@ -172,7 +172,7 @@ class RegisterStudentSerializer(serializers.ModelSerializer):
         # Guardar todas las codificaciones faciales
         if face_encodings:
             face_encoding_obj = FaceEncoding(user=user, profile_image=face_images[0])
-            face_encoding_obj.set_encoding_array(face_encodings)
+            face_encoding_obj.set_encoding_array(face_encodings[0]) # Take the first encoding
             face_encoding_obj.save()
 
         return user

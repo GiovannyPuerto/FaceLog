@@ -13,7 +13,7 @@ class ExcuseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Excuse
         fields = ['id', 'student', 'session', 'reason', 'document', 'status', 'reviewed_by', 'review_comment', 'created_at', 'reviewed_at']
-        read_only_fields = ['id', 'student', 'status', 'reviewed_by', 'review_comment', 'created_at', 'reviewed_at']
+        read_only_fields = ['id', 'status', 'reviewed_by', 'review_comment', 'created_at', 'reviewed_at']
 
     def create(self, validated_data):
         # Asigna el estudiante autenticado al crear la excusa

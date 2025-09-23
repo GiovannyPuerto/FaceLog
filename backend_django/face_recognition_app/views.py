@@ -30,12 +30,15 @@ class FacialRegistrationView(generics.CreateAPIView):
             return Response({'error': 'No se pudo detectar una única cara en la imagen. Intente con otra foto.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Crear o actualizar el registro de FaceEncoding
-        face_encoding_obj, created = FaceEncoding.objects.update_or_create(
-            user=user,
-            defaults={'profile_image': image_file}
-        )
-        face_encoding_obj.set_encoding_array(encoding)
-        face_encoding_obj.save()
+        try:
+            face_encoding_obj, created = FaceEncoding.objects.update_or_create(
+                user=user,
+                defaults={'profile_image': image_file}
+            )
+            face_encoding_obj.set_encoding_array(encoding)
+            face_encoding_obj.save()
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = self.get_serializer(face_encoding_obj)
         return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)

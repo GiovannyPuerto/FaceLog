@@ -4,7 +4,9 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.conf import settings
 import json
+import logging
 
+logger = logging.getLogger(__name__)
 User = settings.AUTH_USER_MODEL
 
 class FaceEncoding(models.Model):
@@ -43,16 +45,24 @@ class FaceEncoding(models.Model):
     def get_encoding_array(self):
         """Convierte el JSON string de vuelta a lista de Python"""
         try:
-            return json.loads(self.encoding_data)
+            encoding = json.loads(self.encoding_data)
+            logger.info(f"Loaded encoding for user {self.user.username} with length {len(encoding) if encoding else 0}")
+            return encoding
         except (json.JSONDecodeError, TypeError):
+            logger.error(f"Could not decode encoding for user {self.user.username}")
             return None
     
     def set_encoding_array(self, encoding_array):
-        """Convierte la lista de encoding a JSON string"""
+        """Convierte la lista de encoding a JSON string y valida su integridad."""
+        if encoding_array is None or len(encoding_array) != 128:
+            logger.error(f"Intento de guardar una codificación inválida para el usuario {self.user.username}. Longitud: {len(encoding_array) if encoding_array is not None else 'None'}")
+            raise ValueError("La codificación facial proporcionada es inválida o está vacía.")
+
         try:
             self.encoding_data = json.dumps(encoding_array.tolist() if hasattr(encoding_array, 'tolist') else encoding_array)
-        except (TypeError, AttributeError):
-            self.encoding_data = json.dumps([])
+        except (TypeError, AttributeError) as e:
+            logger.error(f"Error al serializar la codificación para el usuario {self.user.username}: {e}")
+            raise ValueError("No se pudo serializar la codificación facial.")
 
 class FaceVerificationLog(models.Model):
     """
@@ -119,7 +129,7 @@ class FaceRecognitionSettings(models.Model):
     Configuraciones globales para el sistema de reconocimiento facial.
     """
     confidence_threshold = models.FloatField(
-        default=0.4,
+        default=0.6,
         help_text="Umbral de confianza para considerar una coincidencia válida (menor valor = más estricto)"
     )
     max_verification_attempts = models.IntegerField(
@@ -159,7 +169,7 @@ class FaceRecognitionSettings(models.Model):
         settings, created = cls.objects.get_or_create(
             is_active=True,
             defaults={
-                'confidence_threshold': 0.4,
+                'confidence_threshold': 0.6,
                 'max_verification_attempts': 3,
                 'face_detection_model': 'hog',
                 'enable_logging': True,

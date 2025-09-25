@@ -459,20 +459,6 @@ export default function SessionCalendarPage() {
                 }
             `}</style>
 
-            {/* Theme Toggle */}
-            <div 
-                className="theme-toggle"
-                onClick={() => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    document.documentElement.setAttribute('data-theme', 
-                        currentTheme === 'dark' ? 'light' : 'dark'
-                    );
-                }}
-                title={t('common_change_theme')}
-            >
-                🌓
-            </div>
-
             <div className="calendar-container">
                 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                     <h1 className="modern-title">

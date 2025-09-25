@@ -1,5 +1,5 @@
 "use client";
-
+// frontend/app/dashboard/instructor/manage-sessions/page.tsx
 import { useState, useEffect } from 'react';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
@@ -117,7 +117,7 @@ export default function ManageSessionsPage() {
                 :root {
                     --bg-primary: #f8f9fa;
                     --bg-card: #ffffff;
-                    --text-primary: #212529;
+                    --text-primary: #000000ff;
                     --text-secondary: #6c757d;
                     --border-color: #e9ecef;
                     --button-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -307,6 +307,7 @@ export default function ManageSessionsPage() {
                     padding: 12px !important;
                     border-bottom: 1px solid var(--border-color) !important;
                     color: var(--text-primary) !important;
+                    background: var(--bg-card) !important;
                     font-weight: 500 !important;
                     vertical-align: middle !important;
                 }
@@ -410,30 +411,7 @@ export default function ManageSessionsPage() {
                     color: white;
                 }
 
-                .theme-toggle {
-                    position: fixed;
-                    top: 15px;
-                    right: 20px;
-                    background: var(--bg-card);
-                    border: 2px solid var(--border-color);
-                    border-radius: 50%;
-                    width: 55px;
-                    height: 55px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    color: var(--text-primary);
-                    box-shadow: var(--shadow-card);
-                    font-size: 1.2rem;
-                    z-index: 9999;
-                }
-
-                .theme-toggle:hover {
-                    transform: scale(1.1) rotate(180deg);
-                    box-shadow: var(--shadow-hover);
-                }
+                
 
                 @media (max-width: 991.98px) {
                     .modern-sessions-container {
@@ -466,29 +444,13 @@ export default function ManageSessionsPage() {
                         padding: 16px;
                     }
                     
-                    .theme-toggle {
-                        top: 15px;
-                        right: 15px;
-                        width: 45px;
-                        height: 45px;
-                        font-size: 1rem;
-                    }
+                    
+
+                   
                 }
             `}</style>
 
-            {/* Toggle de tema */}
-            <div 
-                className="theme-toggle d-none d-md-flex"
-                onClick={() => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    document.documentElement.setAttribute('data-theme', 
-                        currentTheme === 'dark' ? 'light' : 'dark'
-                    );
-                }}
-                title={t('common.change_theme')}
-            >
-                🌓
-            </div>
+            
 
             <div className="modern-sessions-container">
                 <Container fluid className="h-100">
@@ -556,65 +518,88 @@ export default function ManageSessionsPage() {
                     </Card>
 
                     {/* Tabla de Sesiones */}
-                    <Card className="modern-card">
-                        <Table responsive className="modern-table mb-0">
-                            <thead>
-                                <tr>
-                                    <th>{t('manage_sessions.table_header_ficha')}</th>
-                                    <th>{t('manage_sessions.table_header_date')}</th>
-                                    <th>{t('manage_sessions.table_header_start')}</th>
-                                    <th>{t('manage_sessions.table_header_end')}</th>
-                                    <th>{t('manage_sessions.table_header_leniency')}</th>
-                                    <th>{t('manage_sessions.table_header_status')}</th>
-                                    <th>{t('manage_sessions.table_header_actions')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sessions.length === 0 ? (
+                    <div className="d-none d-lg-block">
+                        <Card className="modern-card">
+                            <Table responsive className="modern-table mb-0">
+                                <thead>
                                     <tr>
-                                        <td colSpan={7} className="text-center py-4">
-                                            <span className="text-muted">
-                                                {t('manage_sessions.no_sessions_found')}
-                                            </span>
-                                        </td>
+                                        <th>{t('manage_sessions.table_header_ficha')}</th>
+                                        <th>{t('manage_sessions.table_header_date')}</th>
+                                        <th>{t('manage_sessions.table_header_start')}</th>
+                                        <th>{t('manage_sessions.table_header_end')}</th>
+                                        <th>{t('manage_sessions.table_header_leniency')}</th>
+                                        <th>{t('manage_sessions.table_header_status')}</th>
+                                        <th>{t('manage_sessions.table_header_actions')}</th>
                                     </tr>
-                                ) : (
-                                    sessions.map(session => (
-                                        <tr key={session.id}>
-                                            <td>{session.ficha.numero_ficha}</td>
-                                            <td>{session.date}</td>
-                                            <td>{session.start_time}</td>
-                                            <td>{session.end_time}</td>
-                                            <td>{session.permisividad || 0} {t('manage_sessions.leniency_minutes')}</td>
-                                            <td>
-                                                <span className={`status-badge ${session.is_active ? 'status-active' : 'status-inactive'}`}>
-                                                    {session.is_active ? t('manage_sessions.status_active') : t('manage_sessions.status_inactive')}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div className="d-flex gap-2">
-                                                    <Button 
-                                                        onClick={() => handleOpenModal(session)}
-                                                        className="modern-button-warning"
-                                                        size="sm"
-                                                    >
-                                                        {t('manage_sessions.edit_button')}
-                                                    </Button>
-                                                    <Button 
-                                                        onClick={() => handleDelete(session.id)}
-                                                        className="modern-button-danger"
-                                                        size="sm"
-                                                    >
-                                                        {t('manage_sessions.delete_button')}
-                                                    </Button>
-                                                </div>
+                                </thead>
+                                <tbody>
+                                    {sessions.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} className="text-center py-4">
+                                                <span className="text-muted">{t('manage_sessions.no_sessions_found')}</span>
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </Table>
-                    </Card>
+                                    ) : (
+                                        sessions.map(session => (
+                                            <tr key={session.id}>
+                                                <td>{session.ficha.numero_ficha}</td>
+                                                <td>{session.date}</td>
+                                                <td>{session.start_time}</td>
+                                                <td>{session.end_time}</td>
+                                                <td>{session.permisividad || 0} {t('manage_sessions.leniency_minutes')}</td>
+                                                <td>
+                                                    <span className={`status-badge ${session.is_active ? 'status-active' : 'status-inactive'}`}>
+                                                        {session.is_active ? t('manage_sessions.status_active') : t('manage_sessions.status_inactive')}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="d-flex gap-2">
+                                                        <Button onClick={() => handleOpenModal(session)} className="modern-button-warning" size="sm">{t('manage_sessions.edit_button')}</Button>
+                                                        <Button onClick={() => handleDelete(session.id)} className="modern-button-danger" size="sm">{t('manage_sessions.delete_button')}</Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </Table>
+                        </Card>
+                    </div>
+
+                    {/* Mobile and Tablet Card View */}
+                    <div className="d-lg-none">
+                        {sessions.length === 0 ? (
+                            <Card className="modern-card text-center py-4">
+                                <span className="text-muted">{t('manage_sessions.no_sessions_found')}</span>
+                            </Card>
+                        ) : (
+                            sessions.map(session => (
+                                <Card key={session.id} className="modern-card mb-3">
+                                    <Card.Body>
+                                        <div className="d-flex justify-content-between align-items-start mb-2">
+                                            <h5 className="fw-bold">{session.ficha.numero_ficha}</h5>
+                                            <span className={`status-badge ${session.is_active ? 'status-active' : 'status-inactive'}`}>
+                                                {session.is_active ? t('manage_sessions.status_active') : t('manage_sessions.status_inactive')}
+                                            </span>
+                                        </div>
+                                        <p className="text-muted small mb-2">{session.date}</p>
+                                        <Row>
+                                            <Col>
+                                                <p className="small mb-1"><strong>{t('manage_sessions.table_header_start')}:</strong> {session.start_time}</p>
+                                                <p className="small mb-1"><strong>{t('manage_sessions.table_header_end')}:</strong> {session.end_time}</p>
+                                                <p className="small mb-0"><strong>{t('manage_sessions.table_header_leniency')}:</strong> {session.permisividad || 0} {t('manage_sessions.leniency_minutes')}</p>
+                                            </Col>
+                                        </Row>
+                                        <hr />
+                                        <div className="d-flex justify-content-end gap-2 mt-2">
+                                            <Button onClick={() => handleOpenModal(session)} className="modern-button-warning" size="sm">{t('manage_sessions.edit_button')}</Button>
+                                            <Button onClick={() => handleDelete(session.id)} className="modern-button-danger" size="sm">{t('manage_sessions.delete_button')}</Button>
+                                        </div>
+                                    </Card.Body>
+                                </Card>
+                            ))
+                        )}
+                    </div>
                 </Container>
             </div>
 

@@ -266,31 +266,7 @@ export default function InstructorDashboard() {
                     color: var(--button-gradient) !important;
                 }
 
-                .theme-toggle {   
-                    position: fixed;
-                    top: 15px;
-                    right: 20px;
-                    background: var(--bg-card);
-                    border: 2px solid var(--border-color);
-                    border-radius: 50%;
-                    width: 55px;
-                    height: 55px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    color: var(--text-primary);
-                    box-shadow: var(--shadow-card);
-                    font-size: 1.2rem;
-                    z-index: 9999;
-                    margin-left: 30px;
-                }
-
-                .theme-toggle:hover {
-                    transform: scale(1.1) rotate(180deg);
-                    box-shadow: var(--shadow-hover);
-                }
+                
 
                 @media (max-width: 768px) {
                     .modern-dashboard-container {
@@ -325,13 +301,7 @@ export default function InstructorDashboard() {
                         font-size: 1rem !important;
                     }
                     
-                    .theme-toggle {
-                        top: 15px;
-                        right: 15px;
-                        width: 45px;
-                        height: 45px;
-                        font-size: 1rem;
-                    }
+                    
                 }
 
                 @media (max-width: 576px) {
@@ -352,19 +322,7 @@ export default function InstructorDashboard() {
                 }
             `}</style>
 
-            {/* Toggle de tema */}
-            <div 
-                className="theme-toggle d-none d-md-flex"
-                onClick={() => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    document.documentElement.setAttribute('data-theme', 
-                        currentTheme === 'dark' ? 'light' : 'dark'
-                    );
-                }}
-                title="Cambiar tema"
-            >
-                🌓
-            </div>
+            
 
             <div className="modern-dashboard-container">
                 <div className="main-Content">

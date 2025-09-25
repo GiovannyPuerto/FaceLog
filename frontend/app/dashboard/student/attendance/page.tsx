@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
 import { Container, Card, Button, Form, Badge, Row, Col, Spinner, Alert } from 'react-bootstrap';
+import { useTranslation } from 'react-i18next';
 
 // Helper para obtener color basado en estado
 const getStatusColor = (status) => {
@@ -16,28 +17,9 @@ const getStatusColor = (status) => {
     }
 };
 
-const getStatusIcon = (status) => {
-    switch (status) {
-        case 'present': return '✅';
-        case 'absent': return '❌';
-        case 'late': return '⏰';
-        case 'excused': return '📝';
-        default: return '❓';
-    }
-};
-
-const getStatusText = (status) => {
-    switch (status) {
-        case 'present': return 'Presente';
-        case 'absent': return 'Ausente';
-        case 'late': return 'Tardanza';
-        case 'excused': return 'Excusado';
-        default: return status;
-    }
-};
-
 export default function StudentAttendancePage() {
     const { user } = useAuth();
+    const { t } = useTranslation();
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -55,7 +37,7 @@ export default function StudentAttendancePage() {
             setLogs(response.data.results || response.data);
         } catch (err) {
             console.error("Failed to fetch attendance logs", err);
-            setError("No se pudo cargar el historial de asistencia.");
+            setError(t('student_attendance.error'));
         } finally {
             setLoading(false);
         }
@@ -77,7 +59,7 @@ export default function StudentAttendancePage() {
         return (
             <div className="modern-loading">
                 <Spinner animation="border" className="modern-spinner" />
-                <div className="modern-loading-text">Cargando historial de asistencia...</div>
+                <div className="modern-loading-text">{t('student_attendance.loading')}</div>
             </div>
         );
     }
@@ -135,7 +117,6 @@ export default function StudentAttendancePage() {
                     min-height: 100vh;
                     padding: 30px;
                     transition: background-color 0.3s ease;
-                    margin-left: 240px;
                 }
 
                 .modern-title {
@@ -428,24 +409,12 @@ export default function StudentAttendancePage() {
                 }
             `}</style>
 
-            {/* Toggle de tema */}
-            <div 
-                className="theme-toggle d-none d-md-flex"
-                onClick={() => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    document.documentElement.setAttribute('data-theme', 
-                        currentTheme === 'dark' ? 'light' : 'dark'
-                    );
-                }}
-                title="Cambiar tema"
-            >
-                🌓
-            </div>
+            
 
             <div className="modern-student-container">
                 <Container fluid className="h-100">
                     <h1 className="modern-title">
-                        📊 Mi Historial de Asistencia
+                        {t('student_attendance.title')}
                     </h1>
                     
                     {/* Estadísticas rápidas */}
@@ -455,7 +424,7 @@ export default function StudentAttendancePage() {
                                 <div className="modern-stat-number">
                                     {logs.filter(log => log.status === 'present').length}
                                 </div>
-                                <div className="modern-stat-label">Presentes</div>
+                                <div className="modern-stat-label">{t('student_attendance.present')}</div>
                             </div>
                         </Col>
                         <Col md={3}>
@@ -463,7 +432,7 @@ export default function StudentAttendancePage() {
                                 <div className="modern-stat-number">
                                     {logs.filter(log => log.status === 'absent').length}
                                 </div>
-                                <div className="modern-stat-label">Ausencias</div>
+                                <div className="modern-stat-label">{t('student_attendance.absences')}</div>
                             </div>
                         </Col>
                         <Col md={3}>
@@ -471,7 +440,7 @@ export default function StudentAttendancePage() {
                                 <div className="modern-stat-number">
                                     {logs.filter(log => log.status === 'late').length}
                                 </div>
-                                <div className="modern-stat-label">Tardanzas</div>
+                                <div className="modern-stat-label">{t('student_attendance.late_arrivals')}</div>
                             </div>
                         </Col>
                         <Col md={3}>
@@ -479,7 +448,7 @@ export default function StudentAttendancePage() {
                                 <div className="modern-stat-number">
                                     {logs.filter(log => log.status === 'excused').length}
                                 </div>
-                                <div className="modern-stat-label">Excusados</div>
+                                <div className="modern-stat-label">{t('student_attendance.excused')}</div>
                             </div>
                         </Col>
                     </Row>
@@ -488,22 +457,22 @@ export default function StudentAttendancePage() {
                     <Card className="modern-filter-card">
                         <Row className="g-3">
                             <Col md={3}>
-                                <Form.Label className="modern-label">🔄 Estado</Form.Label>
+                                <Form.Label className="modern-label">{t('student_attendance.status')}</Form.Label>
                                 <Form.Select 
                                     name="status" 
                                     value={filters.status} 
                                     onChange={handleFilterChange}
                                     className="modern-input"
                                 >
-                                    <option value="">Todos</option>
-                                    <option value="present">Presente</option>
-                                    <option value="absent">Ausente</option>
-                                    <option value="late">Tardanza</option>
-                                    <option value="excused">Excusado</option>
+                                    <option value="">{t('student_attendance.all')}</option>
+                                    <option value="present">{t('student_dashboard.status_present')}</option>
+                                    <option value="absent">{t('student_dashboard.status_absent')}</option>
+                                    <option value="late">{t('student_dashboard.status_late')}</option>
+                                    <option value="excused">{t('student_dashboard.status_excused')}</option>
                                 </Form.Select>
                             </Col>
                             <Col md={3}>
-                                <Form.Label className="modern-label">📅 Desde</Form.Label>
+                                <Form.Label className="modern-label">{t('student_attendance.from')}</Form.Label>
                                 <Form.Control 
                                     type="date" 
                                     name="date_from" 
@@ -513,7 +482,7 @@ export default function StudentAttendancePage() {
                                 />
                             </Col>
                             <Col md={3}>
-                                <Form.Label className="modern-label">📅 Hasta</Form.Label>
+                                <Form.Label className="modern-label">{t('student_attendance.to')}</Form.Label>
                                 <Form.Control 
                                     type="date" 
                                     name="date_to" 
@@ -527,7 +496,7 @@ export default function StudentAttendancePage() {
                                     onClick={handleApplyFilters} 
                                     className="modern-button-primary w-100"
                                 >
-                                    🔍 Filtrar
+                                    🔍 {t('student_attendance.filter')}
                                 </Button>
                             </Col>
                         </Row>
@@ -542,11 +511,11 @@ export default function StudentAttendancePage() {
                                         <div key={log.id} className="modern-attendance-item">
                                             <div className="modern-session-info">
                                                 <h6>
-                                                    📚 Sesión: {log.session.ficha.numero_ficha} - {new Date(log.session.date).toLocaleDateString('es-CO')}
+                                                    {t('student_attendance.session')}: {log.session.ficha.numero_ficha} - {new Date(log.session.date).toLocaleDateString()}
                                                 </h6>
                                                 {log.check_in_time && (
                                                     <div className="modern-time-info">
-                                                        🕐 Hora: {new Date(log.check_in_time).toLocaleTimeString('es-CO')}
+                                                        {t('student_attendance.time')}: {new Date(log.check_in_time).toLocaleTimeString()}
                                                     </div>
                                                 )}
                                             </div>
@@ -554,15 +523,15 @@ export default function StudentAttendancePage() {
                                                 bg={getStatusColor(log.status)} 
                                                 className="modern-badge"
                                             >
-                                                {getStatusIcon(log.status)} {getStatusText(log.status)}
+                                                {t(`student_dashboard.status_${log.status}`)}
                                             </Badge>
                                         </div>
                                     ))
                                 ) : (
                                     <div className="empty-state">
-                                        <div className="empty-state-icon">📋</div>
-                                        <p>No se encontraron registros de asistencia con los filtros seleccionados.</p>
-                                        <p>Ajusta los filtros para ver más resultados.</p>
+                        
+                                        <p>{t('student_attendance.no_records')}</p>
+                                        <p>{t('student_attendance.adjust_filters')}</p>
                                     </div>
                                 )}
                             </div>

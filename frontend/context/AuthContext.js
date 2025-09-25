@@ -11,7 +11,12 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isSidebarOpen, setSidebarOpen] = useState(false);
     const router = useRouter();
+
+    const toggleSidebar = () => {
+        setSidebarOpen(!isSidebarOpen);
+    };
 
     useEffect(() => {
         const token = localStorage.getItem('authToken');
@@ -108,7 +113,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, error, login, register, logout }}>
+        <AuthContext.Provider value={{ user, loading, error, login, register, logout, isSidebarOpen, toggleSidebar }}>
             {children}
         </AuthContext.Provider>
     );

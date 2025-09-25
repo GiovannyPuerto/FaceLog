@@ -502,19 +502,6 @@ export default function ManageUsersPage() {
 
             `}</style>
 
-            {/* Toggle de tema */}
-            <div 
-                className="theme-toggle d-none d-md-flex"
-                onClick={() => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    document.documentElement.setAttribute('data-theme', 
-                        currentTheme === 'dark' ? 'light' : 'dark'
-                    );
-                }}
-                title="Cambiar tema"
-            >
-                🌓
-            </div>
 
             <div className="modern-users-container">
                 <Container fluid className="h-100">

@@ -5,16 +5,52 @@ import Link from 'next/link';
 import api from '../../../lib/api';
 import useAuth from '../../../hooks/useAuth';
 
+const StatCard = ({ title, value, extra = null }) => (
+    <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+        <h3 className="text-lg font-medium text-gray-400">{title}</h3>
+        <p className="text-4xl font-bold text-blue-400 mt-2">{value}</p>
+        {extra && <p className="text-sm text-gray-500 mt-1">{extra}</p>}
+    </div>
+);
+
 export default function AdminDashboardPage() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth(); // Get authLoading state
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const fetchGlobalReport = async () => {
-        if (!user || user.role !== 'admin') return;
-        try {
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchGlobalReportData = async () => {
             setLoading(true);
+
+            try {
+                const response = await api.get('attendance/report/global/');
+                if (isMounted) {
+                    console.log("Report Data:", response.data); // Add console log here
+                    setReportData(response.data);
+                    setError(null);
+                }
+            } catch (err) {
+                console.error("Failed to fetch global report", err);
+                if (isMounted) {
+                    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+                        setError("No tienes permiso para ver este dashboard.");
+                    } else {
+                        setError("No se pudo cargar el reporte global.");
+                    }
+                }
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        if (!authLoading && user) {
+            fetchGlobalReportData();
+=======
             const response = await api.get('/attendance/report/global/');
             setReportData(response.data);
             setError(null);
@@ -23,12 +59,13 @@ export default function AdminDashboardPage() {
             setError("No se pudo cargar el reporte global.");
         } finally {
             setLoading(false);
-        }
-    };
 
-    useEffect(() => {
-        fetchGlobalReport();
-    }, [user]);
+        }
+
+        return () => {
+            isMounted = false;
+        };
+    }, [user, authLoading]);
 
     return (
         <>
@@ -46,12 +83,6 @@ export default function AdminDashboardPage() {
                     --button-hover: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
                     --shadow-card: 0 8px 25px rgba(0, 0, 0, 0.08);
                     --shadow-hover: 0 12px 35px rgba(0, 0, 0, 0.12);
-                    --success-gradient: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
-                    --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-                    --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-                    --input-bg: #ffffff;
-                    --input-border: #e9ecef;
-                    --divider-color: #e9ecef;
                 }
 
                 [data-theme="dark"] {
@@ -67,53 +98,20 @@ export default function AdminDashboardPage() {
                     --button-hover: linear-gradient(135deg, #4493f8 0%, #1b5fc1 100%);
                     --shadow-card: 0 8px 25px rgba(0, 0, 0, 0.3);
                     --shadow-hover: 0 12px 35px rgba(0, 0, 0, 0.4);
-                    --success-gradient: linear-gradient(135deg, #238636 0%, #2ea043 100%);
-                    --info-gradient: linear-gradient(135deg, #58a6ff 0%, #388bfd 100%);
-                    --warning-gradient: linear-gradient(135deg, #d29922 0%, #bb8009 100%);
-                    --input-bg: #21262d;
-                    --input-border: #30363d;
-                    --divider-color: #30363d;
-                }
-
-                body {
-                    background: var(--bg-primary);
-                    color: var(--text-primary);
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-                    transition: all 0.3s ease;
-                    min-height: 100vh;
                 }
 
                 .dashboard-container {
-                    background: var(--bg-primary);
-                    min-height: 100vh;
                     padding: 30px 20px;
-                    transition: background-color 0.3s ease;
                 }
 
                 .modern-title {
-                    color: var(--text-primary);
                     font-weight: 800;
                     font-size: 2.5rem;
                     margin-bottom: 2rem;
-                    position: relative;
                     background: var(--button-gradient);
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
                     background-clip: text;
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                }
-
-                .modern-title::after {
-                    content: '';
-                    position: absolute;
-                    bottom: -15px;
-                    left: 0;
-                    width: 120px;
-                    height: 5px;
-                    background: var(--button-gradient);
-                    border-radius: 3px;
                 }
 
                 .summary-grid {
@@ -121,33 +119,6 @@ export default function AdminDashboardPage() {
                     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
                     gap: 2rem;
                     margin-top: 2rem;
-                }
-
-                .summary-card {
-                    background: var(--bg-card);
-                    border: 2px solid var(--border-color);
-                    border-radius: 20px;
-                    box-shadow: var(--shadow-card);
-                    transition: all 0.3s ease;
-                    padding: 1.5rem;
-                    text-align: center;
-                }
-
-                .summary-card:hover {
-                    transform: translateY(-5px);
-                    box-shadow: var(--shadow-hover);
-                }
-
-                .summary-card h3 {
-                    color: var(--text-secondary);
-                    font-size: 1rem;
-                    margin-bottom: 0.5rem;
-                }
-
-                .summary-card p {
-                    color: var(--text-primary);
-                    font-size: 2.5rem;
-                    font-weight: 700;
                 }
 
                 .loading-container, .error-container, .empty-container {
@@ -159,38 +130,6 @@ export default function AdminDashboardPage() {
                     box-shadow: var(--shadow-card);
                     margin: 2rem 0;
                 }
-
-                .loading-text, .error-text, .empty-text {
-                    color: var(--text-secondary);
-                    font-size: 1.2rem;
-                    font-weight: 600;
-                    margin-top: 1rem;
-                }
-
-                .error-text {
-                    color: #f85149;
-                }
-
-                .loading-icon, .error-icon, .empty-icon {
-                    font-size: 4rem;
-                    margin-bottom: 1rem;
-                }
-
-                @media (max-width: 768px) {
-                    .dashboard-container {
-                        padding: 20px 15px;
-                    }
-                    
-                    .modern-title {
-                        font-size: 2rem;
-                        margin-bottom: 1.5rem;
-                    }
-                    
-                    .summary-grid {
-                        grid-template-columns: 1fr;
-                        gap: 1.5rem;
-                    }
-                }
             `}</style>
 
             <div className="dashboard-container">
@@ -200,48 +139,19 @@ export default function AdminDashboardPage() {
                     </h1>
 
                     {loading ? (
-                        <div className="loading-container">
-                            <div className="loading-icon"></div>
-                            <div className="loading-text">Cargando reporte global...</div>
-                        </div>
+                        <div className="loading-container">Cargando datos del dashboard...</div>
                     ) : error ? (
-                        <div className="error-container">
-                            <div className="error-icon"></div>
-                            <div className="error-text">Error: {error}</div>
-                        </div>
+                        <div className="error-container">Error: {error}</div>
                     ) : reportData ? (
                         <div className="summary-grid">
-                            <div className="summary-card">
-                                <h3>Total de Fichas</h3>
-                                <p>{reportData.total_fichas}</p>
-                            </div>
-                            <div className="summary-card">
-                                <h3>Total de Instructores</h3>
-                                <p>{reportData.total_instructors}</p>
-                            </div>
-                            <div className="summary-card">
-                                <h3>Total de Aprendices</h3>
-                                <p>{reportData.total_students}</p>
-                            </div>
-                            <div className="summary-card">
-                                <h3>Total de Sesiones</h3>
-                                <p>{reportData.total_sessions}</p>
-                            </div>
-                            <div className="summary-card">
-                                <h3>Total de Excusas</h3>
-                                <p>{reportData.total_excuses}</p>
-                            </div>
-                            <div className="summary-card">
-                                <h3>Excusas Pendientes</h3>
-                                <p>{reportData.pending_excuses_count}</p>
-                            </div>
-                            {/* Add more summary items as needed from reportData */}
+                            <StatCard title="Total Fichas" value={reportData.total_fichas} />
+                            <StatCard title="Total Instructores" value={reportData.total_instructors} />
+                            <StatCard title="Total Aprendices" value={reportData.total_students} />
+                            <StatCard title="Total Sesiones" value={reportData.total_sessions} />
+                            <StatCard title="Excusas Pendientes" value={reportData.pending_excuses_count} />
                         </div>
                     ) : (
-                        <div className="empty-container">
-                            <div className="empty-icon"></div>
-                            <div className="empty-text">No hay datos de reporte global disponibles.</div>
-                        </div>
+                        <div className="empty-container">No hay datos disponibles para mostrar en el dashboard.</div>
                     )}
                 </div>
             </div>

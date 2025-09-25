@@ -23,25 +23,9 @@ export default function FichaAttendancePage() {
             setLoading(true);
             // Assuming an API endpoint for fetching attendance for a specific ficha
             const response = await api.get(`attendance/fichas/${fichaId}/attendance-report/`);
-            const { sessions, students } = response.data;
-
-            const flattenedAttendanceRecords = [];
-            students.forEach(student => {
-                for (const sessionId in student.attendances) {
-                    const status = student.attendances[sessionId];
-                    const session = sessions.find(s => s.id === parseInt(sessionId));
-                    if (session) {
-                                                flattenedAttendanceRecords.push({
-                            id: status.id, // Use the actual Attendance record ID from backend
-                            student_name: student.full_name,
-                            date: session.date,
-                            status: status.status, // Use the actual status value
-                            timestamp: session.start_time, // Using start_time as timestamp for now
-                        });
-                    }
-                }
-            });
-            setAttendanceRecords(flattenedAttendanceRecords);
+            
+            setAttendanceRecords(response.data.detailed_records);
+            setFichaDetails(response.data.ficha);
             setError(null);
         } catch (err) {
             console.error("Failed to fetch attendance records", err);
@@ -314,8 +298,8 @@ export default function FichaAttendancePage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {attendanceRecords.map(record => (
-                                        <tr key={record.id}>
+                                    {attendanceRecords.map((record, index) => (
+                                        <tr key={`${record.student_name}-${record.date}-${index}`}>
                                             <td>{record.student_name}</td>
                                             <td>{new Date(record.date).toLocaleDateString('es-CO')}</td>
                                             <td>

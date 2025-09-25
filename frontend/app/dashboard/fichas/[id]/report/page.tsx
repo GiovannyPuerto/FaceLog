@@ -15,61 +15,43 @@ export default function FichaReportPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const fetchReport = async () => {
-        if (!user || user.role !== 'instructor' || !fichaId) return;
-        console.log("Fetching report for fichaId:", fichaId); // Add this line
-        try {
-            setLoading(true);
-            // Assuming an API endpoint for fetching report data for a specific ficha
-            const response = await api.get(`attendance/fichas/${fichaId}/attendance-report/`);
-            const { ficha, sessions, students } = response.data;
-
-            let total_students = students.length;
-            let total_present = 0;
-            let total_absent = 0;
-            let total_late = 0;
-            const detailed_records = [];
-
-            students.forEach(student => {
-                for (const sessionId in student.attendances) {
-                    const status = student.attendances[sessionId];
-                    const session = sessions.find(s => s.id === parseInt(sessionId));
-
-                    if (status === 'present') total_present++;
-                    else if (status === 'absent') total_absent++;
-                    else if (status === 'late') total_late++;
-
-                    if (session) {
-                        detailed_records.push({
-                            student_name: student.full_name,
-                            date: session.date,
-                            status: status,
-                            time: session.start_time, // Using start_time as time for now
-                        });
-                    }
-                }
-            });
-
-            setReportData({
-                ficha: ficha,
-                total_students: total_students,
-                total_present: total_present,
-                total_absent: total_absent,
-                total_late: total_late,
-                detailed_records: detailed_records,
-            });
-            setError(null);
-        } catch (err) {
-            console.error("Failed to fetch report data", err);
-            setError("No se pudo cargar el reporte de la ficha.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
-        fetchReport();
+        let isMounted = true;
+
+        const fetchReportData = async () => { // Renamed to avoid conflict
+            if (!user || !fichaId) return;
+            if (user.role !== 'admin' && user.role !== 'instructor') return;
+
+            console.log("Fetching report for fichaId:", fichaId);
+            try {
+                setLoading(true);
+                const response = await api.get(`attendance/fichas/${fichaId}/attendance-report/`);
+                if (isMounted) {
+                    setReportData(response.data);
+                    setError(null);
+                }
+            } catch (err) {
+                console.error("Failed to fetch report data", err);
+                if (isMounted) {
+                    setError("No se pudo cargar el reporte de la ficha.");
+                }
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        if (user && fichaId) { // Only fetch if user and fichaId are available
+            fetchReportData();
+        }
+
+        return () => {
+            isMounted = false;
+        };
     }, [user, fichaId]);
+
+    const backUrl = user?.role === 'admin' ? '/dashboard/admin/manage-fichas' : '/dashboard/instructor/my-fichas';
 
     return (
         <>
@@ -285,8 +267,8 @@ export default function FichaReportPage() {
 
             <div className="fichas-container">
                 <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-                    <Link href="/dashboard/instructor/my-fichas" className="back-button">
-                        ← Volver a Mis Fichas
+                    <Link href={backUrl} className="back-button">
+                        ← Volver
                     </Link>
                     <h1 className="modern-title">
                         Reporte de Ficha {reportData && reportData.ficha ? reportData.ficha.numero_ficha : fichaId}
@@ -337,10 +319,9 @@ export default function FichaReportPage() {
                                         </thead>
                                         <tbody>
                                             {reportData.detailed_records.map((record, index) => (
-                                                <tr key={index}>
-                                                    <td>{record.student_name}</td>
+                                                <tr key={`${record.student_name}-${record.date}-${index}`}><td>{record.student_name}</td>
                                                     <td>{new Date(record.date).toLocaleDateString('es-CO')}</td>
-                                                    <td>{record.status.status}</td>
+                                                    <td>{record.status}</td>
                                                     <td>{new Date(record.time).toLocaleTimeString('es-CO')}</td>
                                                 </tr>
                                             ))}

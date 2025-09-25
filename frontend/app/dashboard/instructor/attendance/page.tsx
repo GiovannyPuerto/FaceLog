@@ -44,10 +44,9 @@ export default function TakeAttendancePage() {
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
-    const detectionIntervalRef = useRef(null);
-    const submissionIntervalRef = useRef(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingLog, setEditingLog] = useState(null);
+
 
     const getStatusText = (status) => {
         switch (status) {
@@ -60,6 +59,7 @@ export default function TakeAttendancePage() {
     };
 
     // 1. Cargar modelos de FaceAPI
+
     useEffect(() => {
         const loadModels = async () => {
             const MODEL_URL = '/models';
@@ -75,7 +75,6 @@ export default function TakeAttendancePage() {
         loadModels();
     }, [t]);
 
-    // 2. Obtener sesiones de hoy del instructor
     useEffect(() => {
         const fetchTodaysSessions = async () => {
             if (user?.role !== 'instructor') return;
@@ -89,16 +88,18 @@ export default function TakeAttendancePage() {
         if (user) fetchTodaysSessions();
     }, [user]);
 
-    // 3. Iniciar/detener cámara y detección
     useEffect(() => {
+        let detectionInterval;
+        let submissionInterval;
+
         const startCameraAndDetection = () => {
             navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } })
                 .then(stream => {
                     if (videoRef.current) {
                         videoRef.current.srcObject = stream;
                         videoRef.current.onplaying = () => {
-                            detectionIntervalRef.current = setInterval(handleDetection, 100);
-                            submissionIntervalRef.current = setInterval(captureAndRecognize, 5000);
+                            detectionInterval = setInterval(handleDetection, 100);
+                            submissionInterval = setInterval(captureAndRecognize, 5000);
                         };
                     }
                 })
@@ -110,8 +111,8 @@ export default function TakeAttendancePage() {
         }
 
         return () => {
-            clearInterval(detectionIntervalRef.current);
-            clearInterval(submissionIntervalRef.current);
+            clearInterval(detectionInterval);
+            clearInterval(submissionInterval);
             if (videoRef.current && videoRef.current.srcObject) {
                 videoRef.current.srcObject.getTracks().forEach(track => track.stop());
                 videoRef.current.srcObject = null;
@@ -172,7 +173,6 @@ export default function TakeAttendancePage() {
                 
                 if (response.data.recognized_students && response.data.recognized_students.length > 0) {
                     const recognizedNames = response.data.recognized_students.map(s => s.full_name).join(', ');
-                    alert(`¡Bienvenido(a), ${recognizedNames}! Asistencia registrada.`);
                     setRecognitionStatus(`Reconocido: ${recognizedNames}`);
                 } else {
                     setRecognitionStatus('No se reconoció a nadie nuevo.');
@@ -352,31 +352,6 @@ export default function TakeAttendancePage() {
                         opacity: 0.6;
                     }
 
-                    .theme-toggle {
-                        position: fixed;
-                        top: 20px;
-                        right: 20px;
-                        background: var(--bg-card);
-                        border: 2px solid var(--border-color);
-                        border-radius: 50%;
-                        width: 55px;
-                        height: 55px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        cursor: pointer;
-                        transition: all 0.3s ease;
-                        color: var(--text-primary);
-                        box-shadow: var(--shadow-card);
-                        font-size: 1.2rem;
-                        z-index: 9999;
-                    }
-
-                    .theme-toggle:hover {
-                        transform: scale(1.1) rotate(180deg);
-                        box-shadow: var(--shadow-hover);
-                    }
-
                     @media (max-width: 991.98px) {
                         .modern-attendance-container {
                             margin-left: 220px;
@@ -393,18 +368,9 @@ export default function TakeAttendancePage() {
                         .modern-select-title {
                             font-size: 1.5rem;
                         }
-                        
-                        .theme-toggle {
-                            top: 15px;
-                            right: 15px;
-                            width: 45px;
-                            height: 45px;
-                            font-size: 1rem;
-                        }
                     }
                 `}</style>
 
-               
 
                 <div className="modern-attendance-container d-flex align-items-center justify-content-center">
                     <Card className="modern-select-card">
@@ -774,6 +740,7 @@ export default function TakeAttendancePage() {
                     font-size: 1.1rem;
                 }
 
+
                 .theme-toggle {
                     position: relative;
                     top: 25px;
@@ -798,6 +765,7 @@ export default function TakeAttendancePage() {
                     transform: scale(1.1) rotate(180deg);
                     box-shadow: var(--shadow-hover);
                 }
+
 
                 @media (max-width: 991.98px) {
                     .modern-attendance-active-container {
@@ -831,18 +799,10 @@ export default function TakeAttendancePage() {
                         flex-direction: column;
                         gap: 8px;
                     }
-                    
-                    .theme-toggle {
-                        top: 15px;
-                        right: 15px;
-                        width: 45px;
-                        height: 45px;
-                        font-size: 1rem;
-                    }
                 }
             `}</style>
 
-    
+
             <div className="modern-attendance-active-container">
                 <Container fluid className="h-100">
                     {/* Header de sesión activa */}

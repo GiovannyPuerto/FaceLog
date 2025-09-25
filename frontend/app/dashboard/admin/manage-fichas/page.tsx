@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
@@ -25,10 +25,10 @@ export default function ManageFichasPage() {
     const [editingFicha, setEditingFicha] = useState(null);
     const [filters, setFilters] = useState({ numero_ficha: '', programa_formacion: '', instructor: '' });
 
-    const fetchFichas = async () => {
+    const fetchFichas = useCallback(async () => {
         if (!user || user.role !== 'admin') return;
+        setLoading(true);
         try {
-            setLoading(true);
             const response = await api.get('attendance/fichas/', { params: filters });
             setFichas(response.data.results || []);
         } catch (err) {
@@ -36,28 +36,35 @@ export default function ManageFichasPage() {
         } finally {
             setLoading(false);
         }
-    };
-
-    const fetchInstructors = async () => {
-        if (!user || user.role !== 'admin') return;
-        try {
-            const response = await api.get('auth/users/', { params: { role: 'instructor' } });
-            setInstructors(response.data.results || []);
-        } catch (err) {
-            console.error("Failed to fetch instructors for filter", err);
-        }
-    };
+    }, [user, filters]);
 
     useEffect(() => {
+        const fetchInstructors = async () => {
+            if (!user || user.role !== 'admin') return;
+            try {
+                const response = await api.get('auth/users/', { params: { role: 'instructor' } });
+                setInstructors(response.data.results || []);
+            } catch (err) {
+                console.error("Failed to fetch instructors for filter", err);
+            }
+        };
+
+        if (user) {
+            fetchFichas();
+            fetchInstructors();
+        }
+    }, [user, fetchFichas]);
+
+    const handleApplyFilters = () => {
         fetchFichas();
-        fetchInstructors();
-    }, [user]);
+    };
 
     const handleDelete = async (fichaId) => {
         if (!confirm("¿Estás seguro de que quieres eliminar esta ficha?")) return;
         try {
             await api.delete(`attendance/fichas/${fichaId}/`);
-            setFichas(fichas.filter(f => f.id !== fichaId));
+            alert("Ficha eliminada con éxito.");
+            fetchFichas(); // Refresh list
         } catch (err) {
             alert("No se pudo eliminar la ficha.");
         }
@@ -88,22 +95,33 @@ export default function ManageFichasPage() {
             return;
         }
 
-        const promise = editingFicha
-            ? api.patch(`attendance/fichas/${editingFicha.id}/`, data)
-            : api.post('attendance/fichas/', data);
-
         try {
+
+            if (editingFicha) {
+                await api.patch(`attendance/fichas/${editingFicha.id}/`, data);
+            } else {
+                await api.post('attendance/fichas/', data);
+            }
+            alert("Ficha guardada con éxito.");
+            fetchFichas(); // Refresh list
+
             await promise;
             await fetchFichas();
+
             handleCloseModal();
         } catch (err) {
-            alert(`Error al guardar la ficha: ${err.response?.data?.detail || Object.values(err.response?.data || {}).flat().join(', ') || 'Error desconocido'}`);
+            const errorMsg = err.response?.data?.detail || Object.values(err.response?.data || {}).flat().join(', ') || 'Error desconocido';
+            alert(`Error al guardar la ficha: ${errorMsg}`);
         }
     };
 
     const handleFilterChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
     };
+
+
+    if (loading) return <div className="text-center p-10">Cargando fichas...</div>;
+    if (error) return <div className="text-center p-10 text-red-500">{error}</div>;
 
     const handleApplyFilters = () => {
         fetchFichas();
@@ -742,6 +760,35 @@ export default function ManageFichasPage() {
                                 </div>
                             </div>
 
+
+                <div className="bg-gray-800 shadow-lg rounded-lg overflow-hidden">
+                    <table className="min-w-full text-white">
+                        <thead>
+                            <tr>
+                                <th className="py-3 px-4 text-left">Número</th>
+                                <th className="py-3 px-4 text-left">Programa</th>
+                                <th className="py-3 px-4 text-left">Jornada</th>
+                                <th className="py-3 px-4 text-left">Instructores</th>
+                                <th className="py-3 px-4 text-left">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {fichas.map(ficha => (
+                                <tr key={ficha.id}>
+                                    <td className="py-3 px-4">{ficha.numero_ficha}</td>
+                                    <td className="py-3 px-4">{ficha.programa_formacion}</td>
+                                    <td className="py-3 px-4">{ficha.jornada || 'N/A'}</td>
+                                    <td className="py-3 px-4">{ficha.instructors?.map(i => `${i.first_name} ${i.last_name}`).join(', ') || 'N/A'}</td>
+                                    <td className="py-3 px-4 space-x-2">
+                                        <button onClick={() => handleOpenModal(ficha)} className="text-yellow-400 hover:text-yellow-300">Editar</button>
+                                        <button onClick={() => handleDelete(ficha.id)} className="text-red-500 hover:text-red-400">Eliminar</button>
+                                        <Link href={`/dashboard/fichas/${ficha.id}/report`} className="text-blue-400 hover:text-blue-300">Reporte</Link>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
                             <div className="table-card">
                                 <table className="modern-table">
                                     <thead className="table-header">
@@ -791,6 +838,7 @@ export default function ManageFichasPage() {
                             </div>
                         </>
                     )}
+
                 </div>
             </div>
 

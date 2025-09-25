@@ -808,7 +808,7 @@ export default function ManageExcusesPage() {
                         <strong> Aprendiz:</strong> {currentExcuseToReview.student.first_name} {currentExcuseToReview.student.last_name}
                     </div>
                     <div className="modal-info">
-                        <strong>Sesión:</strong> {currentExcuseToReview.session.ficha.numero_ficha} - {new Date(currentExcuseToReview.session.date).toLocaleDateString('es-CO')}
+                        <strong>Sesión:</strong> {currentExcuseToReview.session?.ficha?.numero_ficha || 'N/A'} - {new Date(currentExcuseToReview.session.date).toLocaleDateString('es-CO')}
                     </div>
                     <div className="modal-reason">
                         <strong> Motivo:</strong> {currentExcuseToReview.reason}

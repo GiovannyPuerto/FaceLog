@@ -637,19 +637,7 @@ export default function ManageExcusesPage() {
                 }
             `}</style>
 
-            {/* Theme Toggle */}
-            <div 
-                className="theme-toggle"
-                onClick={() => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    document.documentElement.setAttribute('data-theme', 
-                        currentTheme === 'dark' ? 'light' : 'dark'
-                    );
-                }}
-                title={t('common_change_theme')}
-            >
-                🌓
-            </div>
+            
 
             <div className="excuses-container">
                 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>

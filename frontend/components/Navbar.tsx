@@ -1,17 +1,33 @@
 "use client";
-
+import { useState, useEffect } from 'react';
 import useAuth from '../hooks/useAuth';
-import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
+import { Navbar, Nav, Container, Button } from 'react-bootstrap';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import '../i18n'; // Import the i18n configuration
+import { Globe, Sun, Moon } from 'lucide-react';
+import '../i18n';
 
 export default function AppNavbar() {
-    const { user, logout } = useAuth();
+    const { user, logout, toggleSidebar } = useAuth();
     const { t, i18n } = useTranslation();
+    const [theme, setTheme] = useState('light');
 
-    const changeLanguage = (lng) => {
-        i18n.changeLanguage(lng);
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    }, []);
+
+    const toggleLanguage = () => {
+        const newLang = i18n.language === 'es' ? 'en' : 'es';
+        i18n.changeLanguage(newLang);
+    };
+
+    const toggleTheme = () => {
+        const newTheme = theme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+        document.documentElement.setAttribute('data-theme', newTheme);
     };
 
     return (
@@ -43,11 +59,12 @@ export default function AppNavbar() {
                     background: var(--navbar-bg) !important;
                     border-bottom: 2px solid var(--navbar-border) !important;
                     box-shadow: var(--shadow-navbar) !important;
-                    padding: 1rem 0 !important;
+                    height: 70px !important;
                     position: sticky !important;
                     top: 0 !important;
                     z-index: 1010 !important;
-                    transition: all 0.3s ease !important;
+                    display: flex;
+                    align-items: center;
                 }
 
                 .modern-navbar-brand {
@@ -56,17 +73,10 @@ export default function AppNavbar() {
                     background: var(--brand-gradient) !important;
                     -webkit-background-clip: text !important;
                     -webkit-text-fill-color: transparent !important;
-                    background-clip: text !important;
                     text-decoration: none !important;
                     display: flex !important;
                     align-items: center !important;
                     gap: 12px !important;
-                    transition: all 0.3s ease !important;
-                }
-
-                .modern-navbar-brand:hover {
-                    transform: scale(1.02) !important;
-                    text-decoration: none !important;
                 }
 
                 .modern-brand-icon {
@@ -86,32 +96,21 @@ export default function AppNavbar() {
                     color: var(--text-primary) !important;
                     font-size: 1rem !important;
                     font-weight: 500 !important;
-                    margin-right: 1.5rem !important;
-                    padding: 8px 16px !important;
+                    margin-right: 1rem !important;
+                    padding: 6px 12px !important;
                     background: rgba(0, 0, 0, 0.03) !important;
-                    border-radius: 25px !important;
+                    border-radius: 20px !important;
                     border: 1px solid var(--navbar-border) !important;
-                    transition: all 0.3s ease !important;
                 }
 
                 [data-theme="dark"] .modern-welcome-text {
                     background: rgba(255, 255, 255, 0.05) !important;
                 }
 
-                .modern-welcome-text:hover {
-                    background: rgba(0, 0, 0, 0.05) !important;
-                    transform: translateY(-1px) !important;
-                }
-
-                [data-theme="dark"] .modern-welcome-text:hover {
-                    background: rgba(255, 255, 255, 0.08) !important;
-                }
-
                 .modern-user-name {
                     background: var(--brand-gradient) !important;
                     -webkit-background-clip: text !important;
                     -webkit-text-fill-color: transparent !important;
-                    background-clip: text !important;
                     font-weight: 700 !important;
                 }
 
@@ -123,7 +122,6 @@ export default function AppNavbar() {
                     font-size: 0.8rem !important;
                     font-weight: 600 !important;
                     text-transform: uppercase !important;
-                    letter-spacing: 0.5px !important;
                     margin-left: 8px !important;
                 }
 
@@ -131,143 +129,134 @@ export default function AppNavbar() {
                     background: var(--logout-gradient) !important;
                     border: none !important;
                     border-radius: 12px !important;
-                    padding: 10px 20px !important;
+                    padding: 8px 16px !important;
                     font-weight: 600 !important;
-                    font-size: 0.95rem !important;
+                    font-size: 0.9rem !important;
                     text-transform: uppercase !important;
-                    letter-spacing: 0.5px !important;
-                    transition: all 0.3s ease !important;
-                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
                 }
 
                 .modern-logout-btn:hover {
                     background: var(--logout-hover) !important;
                     transform: translateY(-2px) !important;
-                    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
                 }
 
                 .modern-nav-link {
                     color: var(--text-primary) !important;
                     font-weight: 600 !important;
                     font-size: 1rem !important;
-                    padding: 10px 20px !important;
+                    padding: 8px 14px !important;
                     border-radius: 12px !important;
-                    margin: 0 8px !important;
-                    transition: all 0.3s ease !important;
-                    text-decoration: none !important;
-                    position: relative !important;
+                    margin: 0 6px !important;
                 }
 
                 .modern-nav-link:hover {
                     background: rgba(0, 0, 0, 0.05) !important;
-                    transform: translateY(-1px) !important;
-                    color: var(--text-primary) !important;
-                    text-decoration: none !important;
                 }
 
                 [data-theme="dark"] .modern-nav-link:hover {
                     background: rgba(255, 255, 255, 0.08) !important;
                 }
 
-                .modern-nav-link::after {
-                    content: '';
-                    position: absolute;
-                    bottom: 5px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    width: 0;
-                    height: 3px;
-                    background: var(--brand-gradient);
-                    border-radius: 2px;
-                    transition: width 0.3s ease;
+                .language-toggle-button, .theme-toggle-button {
+                    background: rgba(0, 0, 0, 0.05) !important;
+                    border: 1px solid var(--navbar-border) !important;
+                    border-radius: 12px !important;
+                    padding: 6px 12px !important;
+                    color: var(--text-primary) !important;
+                    font-weight: 600 !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    gap: 6px !important;
                 }
 
-                .modern-nav-link:hover::after {
-                    width: 60%;
+                [data-theme="dark"] .language-toggle-button, [data-theme="dark"] .theme-toggle-button {
+                    background: rgba(255, 255, 255, 0.08) !important;
                 }
 
-                .navbar-toggler {
-                    border: 2px solid var(--navbar-border) !important;
-                    border-radius: 8px !important;
-                    padding: 8px 12px !important;
-                }
-
-                .navbar-toggler:focus {
-                    box-shadow: none !important;
-                    border-color: var(--brand-gradient) !important;
+                .modern-navbar .nav {
+                    gap: 12px !important;
                 }
 
                 @media (max-width: 991.98px) {
-                    .modern-navbar-brand {
-                        font-size: 1.5rem !important;
+                    .navbar-collapse {
+                        transition: height 0.3s ease-in-out;
+                        overflow: hidden;
+                        height: 0;
                     }
-                    
-                    .modern-brand-icon {
-                        width: 35px;
-                        height: 35px;
-                        font-size: 1rem;
+
+                    .navbar-collapse.collapsing {
+                        min-height: 0 !important;
                     }
-                    
-                    .modern-welcome-text {
-                        font-size: 0.9rem !important;
-                        padding: 6px 12px !important;
-                        margin-right: 1rem !important;
-                        margin-bottom: 10px !important;
-                    }
-                    
-                    .modern-logout-btn {
-                        width: 100%;
-                        margin-top: 10px;
-                    }
-                    
-                    .modern-nav-link {
-                        margin: 5px 0 !important;
-                        text-align: center;
+
+                    .navbar-collapse.show {
+                        height: auto;
+                        border-top: 1px solid var(--navbar-border);
+                        background-color: var(--navbar-bg);
+                        border-bottom-left-radius: 12px;
+                        border-bottom-right-radius: 12px;
+                        padding: 1rem;
                     }
                 }
             `}</style>
 
             <Navbar className="modern-navbar" expand="lg">
-                <Container>
-                    <Navbar.Brand as={Link} href="#"className="modern-navbar-brand">
-                        <div className="modern-brand-icon">
-                            🔍
-                        </div>
-                        FaceLog 2.0
+                <Container fluid>
+                    {/* Botón para abrir/cerrar sidebar en móvil */}
+                    <Button
+                        variant="outline-secondary"
+                        onClick={toggleSidebar}
+                        className="d-lg-none me-2"
+                    >
+                        <span className="navbar-toggler-icon"></span>
+                    </Button>
+
+                    {/* Logo / Marca */}
+                    <Navbar.Brand as={Link} href="/" className="modern-navbar-brand me-auto">
+                        
+                        FaceLog
                     </Navbar.Brand>
-                    
+
+                    {/* Botón de hamburguesa para colapsar el Navbar en móvil */}
                     <Navbar.Toggle aria-controls="basic-navbar-nav" />
-                    
+
                     <Navbar.Collapse id="basic-navbar-nav">
                         <Nav className="ms-auto align-items-center">
                             {user ? (
                                 <>
-                                    <Navbar.Text className="modern-welcome-text">
-                                        {t('welcome')}, <span className="modern-user-name">{user.fullName}</span>
-                                        <span className="modern-user-role">{user.role}</span>
+                                    <Navbar.Text className="modern-welcome-text d-none d-lg-flex align-items-center">
+                                        {t('welcome')}, {" "}
+                                        <span className="modern-user-name ms-1">{user.fullName}</span>
+                                        <span className="modern-user-role ms-2">{user.role}</span>
                                     </Navbar.Text>
-                                    <Button 
-                                        variant="danger" 
+                                    <Button
+                                        variant="danger"
                                         onClick={logout}
-                                        className="modern-logout-btn"
+                                        className="modern-logout-btn ms-lg-2"
                                     >
-                                         {t('logout')}
+                                        {t('logout')}
                                     </Button>
                                 </>
                             ) : (
                                 <>
                                     <Nav.Link as={Link} href="/login" className="modern-nav-link">
-                                         {t('login')}
+                                        {t('login')}
                                     </Nav.Link>
                                     <Nav.Link as={Link} href="/register" className="modern-nav-link">
-                                         {t('register')}
+                                        {t('register')}
                                     </Nav.Link>
                                 </>
                             )}
-                             <NavDropdown title={t('language')} id="basic-nav-dropdown">
-                                <NavDropdown.Item onClick={() => changeLanguage('es')}>Español</NavDropdown.Item>
-                                <NavDropdown.Item onClick={() => changeLanguage('en')}>English</NavDropdown.Item>
-                            </NavDropdown>
+
+                            <div className="d-flex align-items-center mt-2 mt-lg-0 ms-lg-3">
+                                <Button onClick={toggleTheme} className="theme-toggle-button me-2">
+                                    {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+                                </Button>
+
+                                <Button onClick={toggleLanguage} className="language-toggle-button">
+                                    <Globe size={18} />
+                                    <span className="ms-1">{i18n.language.toUpperCase()}</span>
+                                </Button>
+                            </div>
                         </Nav>
                     </Navbar.Collapse>
                 </Container>

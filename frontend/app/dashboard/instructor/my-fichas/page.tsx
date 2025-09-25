@@ -457,22 +457,6 @@ export default function MyFichasPage() {
                 }
             `}</style>
 
-            {/* Theme Toggle */}
-            <div 
-                className="theme-toggle"
-                onClick={() => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    document.documentElement.setAttribute('data-theme', 
-                        currentTheme === 'dark' ? 'light' : 'dark'
-                    );
-                }}
-                title="Cambiar tema"
-            >
-                🌓
-            </div>
-
-
-            
 
             <div className="fichas-container">
                 <div style={{ maxWidth: '1400px', margin: '0 auto' }}>

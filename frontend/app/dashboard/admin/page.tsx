@@ -15,7 +15,7 @@ export default function AdminDashboardPage() {
         if (!user || user.role !== 'admin') return;
         try {
             setLoading(true);
-            const response = await api.get('/api/v1/attendance/report/global/');
+            const response = await api.get('/attendance/report/global/');
             setReportData(response.data);
             setError(null);
         } catch (err) {

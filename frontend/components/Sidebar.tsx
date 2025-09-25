@@ -1,3 +1,4 @@
+// frontend/components/Sidebar.tsx
 "use client";
 
 import Link from 'next/link';
@@ -9,15 +10,9 @@ import { useTranslation } from 'react-i18next';
 import '../i18n';
 
 const Sidebar = () => {
-    const { user } = useAuth();
+    const { user, isSidebarOpen, toggleSidebar } = useAuth();
     const pathname = usePathname();
     const { t } = useTranslation();
-
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-    const toggleSidebar = () => {
-        setIsSidebarOpen(!isSidebarOpen);
-    };
 
     if (!user) {
         return null;
@@ -60,33 +55,7 @@ const Sidebar = () => {
 
     return (
         <>
-            {/* BOTÓN TOGGLE SOLO PARA MÓVIL */}
-            <button 
-                className="mobile-toggle-btn"
-                onClick={toggleSidebar}
-                type="button"
-                aria-label="Toggle menu"
-                style={{
-                    position: 'fixed',
-                    top: '100px',
-                    left: '100px',
-                    zIndex: 1001,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    width: '45px',
-                    height: '45px',
-                    fontSize: '18px',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                }}
-            >
-                ☰
-            </button>
+            
 
             <style jsx global>{`
                 :root {
@@ -113,38 +82,7 @@ const Sidebar = () => {
                     --brand-gradient: linear-gradient(135deg, #58a6ff 0%, #1f6feb 100%);
                 }
 
-                /* BOTÓN TOGGLE MÓVIL - SIEMPRE VISIBLE PARA PRUEBAS */
-                .mobile-toggle-btn {
-                    position: fixed;
-                    top: 20px;
-                    left: 20px;
-                    z-index: 1001;
-                    background: var(--brand-gradient);
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    width: 45px;
-                    height: 45px;
-                    font-size: 18px;
-                    cursor: pointer;
-                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-                    transition: all 0.3s ease;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .mobile-toggle-btn:hover {
-                    transform: scale(1.05);
-                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-                }
-
-                /* Ocultar solo en desktop (mayor a 768px) */
-                @media (min-width: 769px) {
-                    .mobile-toggle-btn {
-                        display: none !important;
-                    }
-                }
+                
 
                 .modern-sidebar {
                     background: var(--sidebar-bg) !important;
@@ -219,7 +157,7 @@ const Sidebar = () => {
                     color: var(--text-primary) !important;
                     font-weight: 500 !important;
                     font-size: 0.95rem !important;
-                    padding: 15px 15px !important;
+                    padding: 18px 15px !important;
                     margin: 0 10px 8px 10px !important;
                     border-radius: 12px !important;
                     transition: all 0.3s ease !important;
@@ -256,6 +194,7 @@ const Sidebar = () => {
 
                 .nav-link-text {
                     flex: 1;
+                    
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
@@ -296,8 +235,8 @@ const Sidebar = () => {
                     }
                     
                     .modern-nav-link {
-                        padding: 12px 20px !important;
-                        margin: 0 10px 6px 10px !important;
+                        padding: 18px 20px !important;
+                        margin: 0 15px 6px 10px !important;
                         font-size: 0.9rem !important;
                     }
                 }
@@ -356,7 +295,7 @@ const Sidebar = () => {
             {isSidebarOpen && (
                 <div 
                     className="sidebar-overlay show d-md-none" 
-                    onClick={() => setIsSidebarOpen(false)}
+                    onClick={toggleSidebar}
                 />
             )}
 
@@ -373,7 +312,7 @@ const Sidebar = () => {
                                 as={Link}
                                 href={link.href}
                                 className={`modern-nav-link ${pathname === link.href ? 'active' : ''}`}
-                                onClick={() => window.innerWidth <= 767 && setIsSidebarOpen(false)}
+                                onClick={() => window.innerWidth <= 767 && toggleSidebar()}
                             >
                                 <span className="nav-link-text">{link.label}</span>
                             </Nav.Link>

@@ -404,19 +404,7 @@ export default function TakeAttendancePage() {
                     }
                 `}</style>
 
-                {/* Toggle de tema */}
-                <div 
-                    className="theme-toggle d-none d-md-flex"
-                    onClick={() => {
-                        const currentTheme = document.documentElement.getAttribute('data-theme');
-                        document.documentElement.setAttribute('data-theme', 
-                            currentTheme === 'dark' ? 'light' : 'dark'
-                        );
-                    }}
-                    title={t('common_change_theme')}
-                >
-                    🌓
-                </div>
+               
 
                 <div className="modern-attendance-container d-flex align-items-center justify-content-center">
                     <Card className="modern-select-card">
@@ -854,20 +842,7 @@ export default function TakeAttendancePage() {
                 }
             `}</style>
 
-            {/* Toggle de tema */}
-            <div 
-                className="theme-toggle d-none d-md-flex"
-                onClick={() => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    document.documentElement.setAttribute('data-theme', 
-                        currentTheme === 'dark' ? 'light' : 'dark'
-                    );
-                }}
-                title={t('common_change_theme')}
-            >
-                🌓
-            </div>
-
+    
             <div className="modern-attendance-active-container">
                 <Container fluid className="h-100">
                     {/* Header de sesión activa */}

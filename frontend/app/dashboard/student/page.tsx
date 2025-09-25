@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import api from '../../../lib/api';
 import useAuth from '../../../hooks/useAuth';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 
 
 // Helper to get color based on status
@@ -33,9 +34,11 @@ const StatCard = ({ title, value, description }) => (
 
 export default function StudentDashboardPage() {
     const { user } = useAuth();
+    const { t } = useTranslation();
     const [summary, setSummary] = useState(null);
     const [upcomingSessions, setUpcomingSessions] = useState([]);
     const [absences, setAbsences] = useState([]);
+    const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -43,17 +46,19 @@ export default function StudentDashboardPage() {
         const fetchDashboardData = async () => {
             if (!user || user.role !== 'student') return;
             try {
-                setLoading(true);
-                const [summaryRes, upcomingRes, absencesRes] = await Promise.all([
+                const [summaryRes, upcomingRes, absencesRes, logsRes] = await Promise.all([
                     api.get('attendance/dashboard/apprentice/summary/'),
                     api.get('attendance/dashboard/apprentice/upcoming-sessions/'),
-                    api.get('attendance/absences/')
+                    api.get('attendance/absences/'),
+                    api.get('attendance/dashboard/apprentice/logs/')
                 ]);
                 setSummary(summaryRes.data);
                 setUpcomingSessions(upcomingRes.data.results || upcomingRes.data);
                 setAbsences(absencesRes.data.results || absencesRes.data);
+                setLogs(logsRes.data.results || logsRes.data);
+                setAbsences(absencesRes.data.results || absencesRes.data);
             } catch (err) {
-                setError("No se pudo cargar la información del dashboard.");
+                setError(t('student_dashboard.error_loading'));
                 console.error(err);
             } finally {
                 setLoading(false);
@@ -61,7 +66,7 @@ export default function StudentDashboardPage() {
         };
 
         fetchDashboardData();
-    }, [user]);
+    }, [user, t]);
 
 
     return (
@@ -493,60 +498,46 @@ export default function StudentDashboardPage() {
                 }
             `}</style>
 
-            {/* Theme Toggle */}
-            <div 
-                className="theme-toggle"
-                onClick={() => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    document.documentElement.setAttribute('data-theme', 
-                        currentTheme === 'dark' ? 'light' : 'dark'
-                    );
-                }}
-                title="Cambiar tema"
-            >
-                🌓
-            </div>
 
             <div className="student-dashboard-container">
                 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                     <h1 className="modern-title">
-                        📊 Mi Dashboard de Aprendiz
+                        {t('student_dashboard.title')}
                     </h1>
                     
                     {loading ? (
                         <div className="loading-container">
                             <div className="loading-icon">⏳</div>
-                            <div className="loading-text">Cargando dashboard...</div>
+                            <div className="loading-text">{t('student_dashboard.loading')}</div>
                         </div>
                     ) : (
                         <>
                             {summary && (
                                 <div style={{ marginBottom: '3rem' }}>
-                                    <h2 className="section-title">📈 Mi Resumen</h2>
+                                    <h2 className="section-title">{t('student_dashboard.summary_title')}</h2>
                                     <div className="stats-grid">
                                         <div className="stat-card success">
                                             <div className="stat-card-body">
-                                                <div className="stat-icon">📈</div>
+                    
                                                 <div className="stat-content">
-                                                    <div className="stat-label">Porcentaje de Asistencia</div>
+                                                    <div className="stat-label">{t('student_dashboard.attendance_percentage')}</div>
                                                     <div className="stat-value">{summary.attendance_percentage}%</div>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="stat-card danger">
                                             <div className="stat-card-body">
-                                                <div className="stat-icon">❌</div>
                                                 <div className="stat-content">
-                                                    <div className="stat-label">Inasistencias</div>
+                                                    <div className="stat-label">{t('student_dashboard.absences')}</div>
                                                     <div className="stat-value">{summary.absent_count}</div>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="stat-card warning">
                                             <div className="stat-card-body">
-                                                <div className="stat-icon">⏰</div>
+                                                
                                                 <div className="stat-content">
-                                                    <div className="stat-label">Llegadas Tarde</div>
+                                                    <div className="stat-label">{t('student_dashboard.late_arrivals')}</div>
                                                     <div className="stat-value">{summary.late_count}</div>
                                                 </div>
                                             </div>
@@ -556,7 +547,7 @@ export default function StudentDashboardPage() {
                             )}
 
                             <div>
-                                <h2 className="section-title">📋 Mi Historial de Asistencia</h2>
+                                <h2 className="section-title">{t('student_dashboard.attendance_history_title')}</h2>
                                 <div className="history-card">
                                     <ul className="history-list">
                                         {logs.length > 0 ? (
@@ -564,27 +555,27 @@ export default function StudentDashboardPage() {
                                                 <li key={log.id} className="history-item">
                                                     <div>
                                                         <div className="history-date">
-                                                            {new Date(log.session.date).toLocaleDateString('es-CO', { 
+                                                            {new Date(log.session.date).toLocaleDateString(undefined, { 
                                                                 year: 'numeric', 
                                                                 month: 'long', 
                                                                 day: 'numeric' 
                                                             })}
                                                         </div>
                                                         <div className="history-ficha">
-                                                            📚 Ficha: {log.session.ficha.numero_ficha}
+                                                            {t('student_dashboard.ficha')}: {log.session.ficha.numero_ficha}
                                                         </div>
                                                     </div>
                                                     <div className="history-details">
                                                         {log.check_in_time && (
                                                             <div className="history-time">
-                                                                🕐 Hora: {new Date(log.check_in_time).toLocaleTimeString()}
+                                                                {t('student_dashboard.check_in_time')}: {new Date(log.check_in_time).toLocaleTimeString()}
                                                             </div>
                                                         )}
                                                         <span className={`status-badge ${getStatusColor(log.status)}`}>
-                                                            {log.status === 'present' ? 'Presente' :
-                                                             log.status === 'absent' ? 'Ausente' :
-                                                             log.status === 'late' ? 'Tarde' :
-                                                             log.status === 'excused' ? 'Excusado' : log.status}
+                                                            {log.status === 'present' ? t('student_dashboard.status_present') :
+                                                             log.status === 'absent' ? t('student_dashboard.status_absent') :
+                                                             log.status === 'late' ? t('student_dashboard.status_late') :
+                                                             log.status === 'excused' ? t('student_dashboard.status_excused') : log.status}
                                                         </span>
                                                     </div>
                                                 </li>
@@ -593,7 +584,7 @@ export default function StudentDashboardPage() {
                                             <div className="empty-container">
                                                 <div className="empty-icon">📭</div>
                                                 <div className="empty-text">
-                                                    No se encontraron registros de asistencia.
+                                                    {t('student_dashboard.no_records')}
                                                 </div>
                                             </div>
                                         )}
@@ -601,68 +592,6 @@ export default function StudentDashboardPage() {
                                 </div>
                             </div>
                         </>
-=======
-    if (loading) return <div className="text-center p-10">Cargando dashboard...</div>;
-    if (error) return <div className="text-center p-10 text-red-500">Error: {error}</div>;
-    if (!summary) return <div className="text-center p-10">No hay datos para mostrar.</div>;
-
-    return (
-        <div className="space-y-8">
-            <div>
-                <h1 className="text-3xl font-bold text-white">Hola, {user?.first_name || user?.username}!</h1>
-                <p className="text-gray-400">Aquí tienes un resumen de tu actividad.</p>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard title="Asistencia General" value={`${summary.attendance_percentage}%`} />
-                <StatCard title="Inasistencias" value={summary.absent_count} />
-                <StatCard title="Tardanzas" value={summary.late_count} />
-                <StatCard title="Excusas Pendientes" value={summary.pending_excuses} />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Upcoming Sessions */}
-                <div className="bg-gray-800 shadow-lg rounded-lg p-6">
-                    <h2 className="text-xl font-semibold text-white mb-4">Próximas Sesiones</h2>
-                    {upcomingSessions.length > 0 ? (
-                        <ul className="space-y-4">
-                            {upcomingSessions.slice(0, 5).map(session => (
-                                <li key={session.id} className="flex justify-between items-center bg-gray-700 p-3 rounded-md">
-                                    <div>
-                                        <p className="font-semibold text-white">{session.ficha.programa_formacion} (Ficha: {session.ficha.numero_ficha})</p>
-                                        <p className="text-sm text-gray-400">
-                                            {new Date(session.date).toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} - {session.start_time}
-                                        </p>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="text-gray-400">No tienes sesiones programadas.</p>
-                    )}
-                </div>
-
-                {/* Recent Absences */}
-                <div className="bg-gray-800 shadow-lg rounded-lg p-6">
-                    <h2 className="text-xl font-semibold text-white mb-4">Inasistencias Recientes</h2>
-                    {absences.length > 0 ? (
-                        <ul className="space-y-4">
-                            {absences.slice(0, 5).map(absence => (
-                                <li key={absence.id} className="flex justify-between items-center bg-gray-700 p-3 rounded-md">
-                                    <div>
-                                        <p className="font-semibold text-white">Sesión del {new Date(absence.session.date).toLocaleDateString('es-CO')}</p>
-                                        <p className="text-sm text-gray-400">Ficha: {absence.session.ficha.numero_ficha}</p>
-                                    </div>
-                                    <Link href={`/dashboard/student/excuses?session_id=${absence.session.id}`} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">
-                                        Justificar
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="text-gray-400">¡Felicidades! No tienes inasistencias.</p>
-
                     )}
                 </div>
             </div>

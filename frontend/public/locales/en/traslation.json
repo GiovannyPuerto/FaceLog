@@ -1,0 +1,11 @@
+{
+  "dashboard_title": "Instructor Dashboard",
+  "loading_summary": "Loading dashboard summary...",
+  "assigned_fichas": "Assigned Classes",
+  "today_sessions": "Today's Sessions",
+  "pending_excuses": "Pending Excuses",
+  "total_students": "Total Students",
+  "attendance_manage_title": "🔍 Manage Attendance",
+  "attendance_manage_desc": "Start a new attendance session for one of your classes and register apprentices using advanced facial recognition.",
+  "attendance_button": "Take Attendance"
+}

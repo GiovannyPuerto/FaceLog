@@ -1,13 +1,18 @@
+// frontend/components/Sidebar.tsx
 "use client";
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import React, { useState } from 'react';
 import { Nav } from 'react-bootstrap';
 import useAuth from '../hooks/useAuth';
+import { useTranslation } from 'react-i18next';
+import '../i18n';
 
 const Sidebar = () => {
-    const { user } = useAuth();
+    const { user, isSidebarOpen, toggleSidebar } = useAuth();
     const pathname = usePathname();
+    const { t } = useTranslation();
 
     if (!user) {
         return null;
@@ -17,29 +22,29 @@ const Sidebar = () => {
         switch (role) {
             case 'student':
                 return [
-                    { href: '/dashboard/student', label: 'Mi Dashboard' },
-                    { href: '/dashboard/student/attendance', label: 'Mi Asistencia'},
-                    { href: '/dashboard/student/excuses', label: 'Mis Excusas'},
-                    { href: '/dashboard/profile', label: 'Mi Perfil', icon: '👤' },
+                    { href: '/dashboard/student', label: t('sidebar_my_dashboard') },
+                    { href: '/dashboard/student/attendance', label: t('sidebar_my_attendance')},
+                    { href: '/dashboard/student/excuses', label: t('sidebar_my_excuses')},
+                    { href: '/dashboard/profile', label: t('sidebar_my_profile')},
                 ];
             case 'instructor':
                 return [
-                    { href: '/dashboard/instructor', label: 'Dashboard'},
-                    { href: '/dashboard/instructor/manage-sessions', label: 'Gestionar Sesiones'},
-                    { href: '/dashboard/instructor/attendance', label: 'Tomar Asistencia'},
-                    { href: '/dashboard/instructor/manage-excuses', label: 'Gestionar Excusas' },
-                    { href: '/dashboard/instructor/my-fichas', label: 'Mis Fichas'},
-                    { href: '/dashboard/instructor/session-calendar', label: 'Calendario de Sesiones'},
-                    { href: '/dashboard/profile', label: 'Mi Perfil'},
+                    { href: '/dashboard/instructor', label: t('sidebar_dashboard')},
+                    { href: '/dashboard/instructor/manage-sessions', label: t('sidebar_manage_sessions')},
+                    { href: '/dashboard/instructor/attendance', label: t('sidebar_take_attendance')},
+                    { href: '/dashboard/instructor/manage-excuses', label: t('sidebar_manage_excuses') },
+                    { href: '/dashboard/instructor/my-fichas', label: t('sidebar_my_fichas')},
+                    { href: '/dashboard/instructor/session-calendar', label: t('sidebar_session_calendar')},
+                    { href: '/dashboard/profile', label: t('sidebar_my_profile')},
                 ];
             case 'admin':
                 return [
-                    { href: '/dashboard/admin', label: 'Dashboard Admin', icon: '⚡' },
-                    { href: '/dashboard/admin/manage-users', label: 'Gestionar Usuarios', icon: '👥' },
-                    { href: '/dashboard/admin/manage-instructors', label: 'Gestionar Instructores', icon: '👨‍🏫' },
-                    { href: '/dashboard/admin/manage-fichas', label: 'Gestionar Fichas', icon: '📚' },
-                    { href: '/dashboard/admin/global-reports', label: 'Reportes Globales', icon: '📈' },
-                    { href: '/dashboard/profile', label: 'Mi Perfil', icon: '👤' },
+                    { href: '/dashboard/admin', label: t('sidebar_admin_dashboard') },
+                    { href: '/dashboard/admin/manage-users', label: t('sidebar_manage_users') },
+                    { href: '/dashboard/admin/manage-instructors', label: t('sidebar_manage_instructors') },
+                    { href: '/dashboard/admin/manage-fichas', label: t('sidebar_manage_fichas')},
+                    { href: '/dashboard/admin/global-reports', label: t('sidebar_global_reports')},
+                    { href: '/dashboard/profile', label: t('sidebar_my_profile')},
                 ];
             default:
                 return [];
@@ -50,6 +55,8 @@ const Sidebar = () => {
 
     return (
         <>
+            
+
             <style jsx global>{`
                 :root {
                     --sidebar-bg: #ffffff;
@@ -74,6 +81,8 @@ const Sidebar = () => {
                     --shadow-sidebar: 4px 0 20px rgba(0, 0, 0, 0.3);
                     --brand-gradient: linear-gradient(135deg, #58a6ff 0%, #1f6feb 100%);
                 }
+
+                
 
                 .modern-sidebar {
                     background: var(--sidebar-bg) !important;
@@ -148,7 +157,7 @@ const Sidebar = () => {
                     color: var(--text-primary) !important;
                     font-weight: 500 !important;
                     font-size: 0.95rem !important;
-                    padding: 15px 15px !important;
+                    padding: 18px 15px !important;
                     margin: 0 10px 8px 10px !important;
                     border-radius: 12px !important;
                     transition: all 0.3s ease !important;
@@ -183,10 +192,9 @@ const Sidebar = () => {
                     transform: translateX(5px) !important;
                 }
 
-                
-
                 .nav-link-text {
                     flex: 1;
+                    
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
@@ -227,21 +235,22 @@ const Sidebar = () => {
                     }
                     
                     .modern-nav-link {
-                        padding: 12px 20px !important;
-                        margin: 0 10px 6px 10px !important;
+                        padding: 18px 20px !important;
+                        margin: 0 15px 6px 10px !important;
                         font-size: 0.9rem !important;
                     }
                 }
 
+                /* MÓVIL: Ocultar sidebar por defecto y mostrarlo cuando esté abierto */
                 @media (max-width: 767.98px) {
                     .modern-sidebar {
-                        transform: translateX(-100%);
-                        width: 100% !important;
-                        max-width: 300px !important;
+                        transform: translateX(-100%) !important;
+                        width: 280px !important;
+                        transition: transform 0.3s ease-in-out !important;
                     }
                     
-                    .sidebar-open .modern-sidebar {
-                        transform: translateX(0);
+                    .modern-sidebar.sidebar-mobile-open {
+                        transform: translateX(0) !important;
                     }
                 }
 
@@ -262,12 +271,38 @@ const Sidebar = () => {
                         margin-left: 0 !important;
                     }
                 }
+
+                /* Overlay para cerrar el sidebar en móvil */
+                .sidebar-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    background: rgba(0, 0, 0, 0.5);
+                    z-index: 998;
+                    display: none;
+                }
+
+                @media (max-width: 767.98px) {
+                    .sidebar-overlay.show {
+                        display: block;
+                    }
+                }
             `}</style>
 
-            <Nav className="modern-sidebar d-none d-md-block">
+            {/* Overlay para cerrar sidebar en móvil */}
+            {isSidebarOpen && (
+                <div 
+                    className="sidebar-overlay show d-md-none" 
+                    onClick={toggleSidebar}
+                />
+            )}
+
+            <Nav className={`modern-sidebar ${isSidebarOpen ? 'sidebar-mobile-open' : ''} d-md-block`}>
                 <div className="sidebar-sticky">
                     <h5 className="modern-sidebar-header">
-                         Menú Principal
+                         {t('sidebar_main_menu')}
                     </h5>
                     
                     <div className="modern-nav-item">
@@ -277,8 +312,8 @@ const Sidebar = () => {
                                 as={Link}
                                 href={link.href}
                                 className={`modern-nav-link ${pathname === link.href ? 'active' : ''}`}
+                                onClick={() => window.innerWidth <= 767 && toggleSidebar()}
                             >
-                                <span className="nav-link-icon">{link.icon}</span>
                                 <span className="nav-link-text">{link.label}</span>
                             </Nav.Link>
                         ))}

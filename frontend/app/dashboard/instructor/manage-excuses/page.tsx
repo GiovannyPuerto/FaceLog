@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 
 // Simple Modal Component with theme support
 const Modal = ({ children, onClose }) => (
@@ -25,6 +26,7 @@ const getStatusColor = (status) => {
 };
 
 export default function ManageExcusesPage() {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [excuses, setExcuses] = useState([]);
     const [students, setStudents] = useState([]);
@@ -44,7 +46,7 @@ export default function ManageExcusesPage() {
             setError(null);
         } catch (err) {
             console.error("Failed to fetch excuses", err);
-            setError("No se pudieron cargar las excusas.");
+            setError(t('manage_excuses.error_loading'));
         } finally {
             setLoading(false);
         }
@@ -83,7 +85,8 @@ export default function ManageExcusesPage() {
             setCurrentExcuseToReview(null);
             setReviewComment('');
         } catch (err) {
-            alert(`Error al ${newStatus} la excusa: ${err.response?.data?.detail || 'Error desconocido'}`);
+            const errorMsg = err.response?.data?.detail || t('manage_excuses.unknown_error');
+            alert(t('manage_excuses.error_reviewing', { status: newStatus, error: errorMsg }));
             console.error(`Failed to ${newStatus} excuse`, err);
         }
     };
@@ -634,29 +637,17 @@ export default function ManageExcusesPage() {
                 }
             `}</style>
 
-            {/* Theme Toggle */}
-            <div 
-                className="theme-toggle"
-                onClick={() => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    document.documentElement.setAttribute('data-theme', 
-                        currentTheme === 'dark' ? 'light' : 'dark'
-                    );
-                }}
-                title="Cambiar tema"
-            >
-                🌓
-            </div>
+            
 
             <div className="excuses-container">
                 <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                     <h1 className="modern-title">
-                         Gestionar Excusas
+                        {t('manage_excuses.title')}
                     </h1>
                     
                     <div className="modern-card">
                         <div className="card-header">
-                            <h2 className="card-title">Excusas de mis Fichas</h2>
+                            <h2 className="card-title">{t('manage_excuses.page_title')}</h2>
                         </div>
 
                         {/* Filter Section */}
@@ -664,14 +655,14 @@ export default function ManageExcusesPage() {
                             <div className="filter-section">
                                 <div className="filter-grid">
                                     <div className="form-group">
-                                        <label className="form-label">Aprendiz</label>
+                                        <label className="form-label">{t('manage_excuses.filter_student')}</label>
                                         <select 
                                             name="student" 
                                             value={filters.student} 
                                             onChange={handleFilterChange} 
                                             className="form-select"
                                         >
-                                            <option value="">Todos</option>
+                                            <option value="">{t('manage_excuses.filter_all_students')}</option>
                                             {students.map(s => (
                                                 <option key={s.id} value={s.id}>
                                                     {s.first_name} {s.last_name}
@@ -680,21 +671,21 @@ export default function ManageExcusesPage() {
                                         </select>
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">Estado</label>
+                                        <label className="form-label">{t('manage_excuses.filter_status')}</label>
                                         <select 
                                             name="status" 
                                             value={filters.status} 
                                             onChange={handleFilterChange} 
                                             className="form-select"
                                         >
-                                            <option value="">Todos</option>
-                                            <option value="pending">Pendiente</option>
-                                            <option value="approved">Aprobada</option>
-                                            <option value="rejected">Rechazada</option>
+                                            <option value="">{t('manage_excuses.filter_all_statuses')}</option>
+                                            <option value="pending">{t('manage_excuses.status_pending')}</option>
+                                            <option value="approved">{t('manage_excuses.status_approved')}</option>
+                                            <option value="rejected">{t('manage_excuses.status_rejected')}</option>
                                         </select>
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">Desde (Sesión)</label>
+                                        <label className="form-label">{t('manage_excuses.filter_date_from')}</label>
                                         <input 
                                             type="date" 
                                             name="date_from" 
@@ -704,7 +695,7 @@ export default function ManageExcusesPage() {
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">Hasta (Sesión)</label>
+                                        <label className="form-label">{t('manage_excuses.filter_date_to')}</label>
                                         <input 
                                             type="date" 
                                             name="date_to" 
@@ -715,7 +706,7 @@ export default function ManageExcusesPage() {
                                     </div>
                                     <div className="form-group">
                                         <button onClick={handleApplyFilters} className="modern-button">
-                                             Filtrar
+                                            {t('manage_excuses.apply_filters')}
                                         </button>
                                     </div>
                                 </div>
@@ -724,12 +715,12 @@ export default function ManageExcusesPage() {
                             {loading ? (
                                 <div className="loading-container">
                                     <div style={{ fontSize: '3rem' }}></div>
-                                    <div className="loading-text">Cargando excusas...</div>
+                                    <div className="loading-text">{t('manage_excuses.loading')}</div>
                                 </div>
                             ) : error ? (
                                 <div className="error-container">
                                     <div style={{ fontSize: '3rem' }}></div>
-                                    <div className="error-text">Error: {error}</div>
+                                    <div className="error-text">{t('manage_excuses.error_loading')}</div>
                                 </div>
                             ) : (
                                 <ul className="excuse-list">
@@ -743,10 +734,10 @@ export default function ManageExcusesPage() {
                                                                  {excuse.student?.first_name} {excuse.student?.last_name}
                                                             </div>
                                                             <div className="excuse-meta">
-                                                                 Ficha: {excuse.session?.ficha?.numero_ficha || 'N/A'}
+
                                                             </div>
                                                             <div className="excuse-meta">
-                                                                 Sesión: {new Date(excuse.session.date).toLocaleDateString('es-CO')}
+                                                                {t('manage_excuses.excuse_card_session', { date: new Date(excuse.session.date).toLocaleDateString('es-CO') })}
                                                             </div>
                                                             {excuse.attachment && (
                                                                 <a 
@@ -755,32 +746,30 @@ export default function ManageExcusesPage() {
                                                                     rel="noopener noreferrer" 
                                                                     className="attachment-link"
                                                                 >
-                                                                    📎 Ver Adjunto
+                                                                    📎 {t('manage_excuses.view_attachment')}
                                                                 </a>
                                                             )}
                                                         </div>
                                                         <div className="excuse-actions">
                                                             <span className={`status-badge ${getStatusColor(excuse.status)}`}>
-                                                                {excuse.status === 'approved' ? ' Aprobada' : 
-                                                                 excuse.status === 'rejected' ? ' Rechazada' : 
-                                                                 excuse.status === 'pending' ? ' Pendiente' : excuse.status}
+                                                                {t(`manage_excuses.status_${excuse.status}`)}
                                                             </span>
                                                             {excuse.status === 'pending' && (
                                                                 <button 
                                                                     onClick={() => handleOpenReviewModal(excuse)} 
                                                                     className="review-button"
                                                                 >
-                                                                     Revisar
+                                                                    {t('manage_excuses.review_button')}
                                                                 </button>
                                                             )}
                                                         </div>
                                                     </div>
                                                     <div className="excuse-reason">
-                                                        <strong> Motivo:</strong> {excuse.reason}
+                                                        <strong>{t('manage_excuses.reason_label')}</strong> {excuse.reason}
                                                     </div>
                                                     {excuse.review_comment && (
                                                         <div className="review-comment">
-                                                            <strong> Comentario de revisión:</strong> {excuse.review_comment}
+                                                            <strong>{t('manage_excuses.review_comment_label')}</strong> {excuse.review_comment}
                                                         </div>
                                                     )}
                                                 </div>
@@ -790,7 +779,7 @@ export default function ManageExcusesPage() {
                                         <div className="empty-container">
                                             <div style={{ fontSize: '3rem' }}></div>
                                             <div className="empty-text">
-                                                No se encontraron excusas con el filtro seleccionado.
+                                                {t('manage_excuses.no_excuses_found')}
                                             </div>
                                         </div>
                                     )}
@@ -803,15 +792,15 @@ export default function ManageExcusesPage() {
 
             {isReviewModalOpen && currentExcuseToReview && (
                 <Modal onClose={() => setIsReviewModalOpen(false)}>
-                    <h2 className="modal-title"> Revisar Excusa</h2>
+                    <h2 className="modal-title">{t('manage_excuses.modal_title')}</h2>
                     <div className="modal-info">
-                        <strong> Aprendiz:</strong> {currentExcuseToReview.student.first_name} {currentExcuseToReview.student.last_name}
+                        <strong>{t('manage_excuses.modal_student_label')}</strong> {currentExcuseToReview.student.first_name} {currentExcuseToReview.student.last_name}
                     </div>
                     <div className="modal-info">
-                        <strong>Sesión:</strong> {currentExcuseToReview.session?.ficha?.numero_ficha || 'N/A'} - {new Date(currentExcuseToReview.session.date).toLocaleDateString('es-CO')}
+                        <strong>{t('manage_excuses.modal_session_label')}</strong> {currentExcuseToReview.session.ficha.numero_ficha} - {new Date(currentExcuseToReview.session.date).toLocaleDateString('es-CO')}
                     </div>
                     <div className="modal-reason">
-                        <strong> Motivo:</strong> {currentExcuseToReview.reason}
+                        <strong>{t('manage_excuses.reason_label')}</strong> {currentExcuseToReview.reason}
                     </div>
                     {currentExcuseToReview.document && (
                         <div style={{ marginBottom: '1rem' }}>
@@ -821,20 +810,20 @@ export default function ManageExcusesPage() {
                                 rel="noopener noreferrer" 
                                 className="attachment-link"
                             >
-                                📎 Ver Adjunto
+                                📎 {t('manage_excuses.view_attachment')}
                             </a>
                         </div>
                     )}
                     <div className="form-group" style={{ marginTop: '1.5rem' }}>
                         <label className="form-label">
-                             Comentario de Revisión (Opcional)
+                            {t('manage_excuses.modal_review_comment_label')}
                         </label>
                         <textarea 
                             value={reviewComment} 
                             onChange={(e) => setReviewComment(e.target.value)} 
                             rows={4} 
                             className="modal-textarea"
-                            placeholder="Escribe un comentario sobre tu decisión..."
+                            placeholder={t('manage_excuses.modal_review_comment_placeholder')}
                         />
                     </div>
                     <div className="modal-actions">
@@ -843,14 +832,14 @@ export default function ManageExcusesPage() {
                             onClick={() => handleReviewExcuse('approved')} 
                             className="approve-button"
                         >
-                             Aprobar
+                            {t('manage_excuses.approve_button')}
                         </button>
                         <button 
                             type="button" 
                             onClick={() => handleReviewExcuse('rejected')} 
                             className="reject-button"
                         >
-                             Rechazar
+                            {t('manage_excuses.reject_button')}
                         </button>
                     </div>
                 </Modal>

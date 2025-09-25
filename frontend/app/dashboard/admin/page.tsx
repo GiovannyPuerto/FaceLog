@@ -24,6 +24,7 @@ export default function AdminDashboardPage() {
 
         const fetchGlobalReportData = async () => {
             setLoading(true);
+
             try {
                 const response = await api.get('attendance/report/global/');
                 if (isMounted) {
@@ -49,6 +50,16 @@ export default function AdminDashboardPage() {
 
         if (!authLoading && user) {
             fetchGlobalReportData();
+=======
+            const response = await api.get('/attendance/report/global/');
+            setReportData(response.data);
+            setError(null);
+        } catch (err) {
+            console.error("Failed to fetch global report", err);
+            setError("No se pudo cargar el reporte global.");
+        } finally {
+            setLoading(false);
+
         }
 
         return () => {

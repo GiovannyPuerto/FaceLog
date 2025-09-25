@@ -91,7 +91,7 @@ export default function StudentAttendancePage() {
                                 <li key={log.id} className="p-4 flex justify-between items-center hover:bg-gray-700 transition-colors">
                                     <div>
                                         <p className="font-semibold text-white">Sesión: {log.session.ficha.numero_ficha} - {new Date(log.session.date).toLocaleDateString('es-CO')}</p>
-                                        {log.check_in_time && (
+                                        {log.check_in_time && log.check_in_time.trim() !== '' && (
                                             <p className="text-sm text-gray-400">Hora: {new Date(log.check_in_time).toLocaleTimeString()}</p>
                                         )}
                                     </div>

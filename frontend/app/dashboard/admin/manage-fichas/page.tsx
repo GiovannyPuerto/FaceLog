@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
@@ -18,17 +18,17 @@ const Modal = ({ children, onClose }) => (
 export default function ManageFichasPage() {
     const { user } = useAuth();
     const [fichas, setFichas] = useState([]);
-    const [instructors, setInstructors] = useState([]); // New state for instructors
+    const [instructors, setInstructors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingFicha, setEditingFicha] = useState(null); // null for new, object for editing
+    const [editingFicha, setEditingFicha] = useState(null);
     const [filters, setFilters] = useState({ numero_ficha: '', programa_formacion: '', instructor: '' });
 
-    const fetchFichas = async () => {
+    const fetchFichas = useCallback(async () => {
         if (!user || user.role !== 'admin') return;
+        setLoading(true);
         try {
-            setLoading(true);
             const response = await api.get('attendance/fichas/', { params: filters });
             setFichas(response.data.results || []);
         } catch (err) {
@@ -36,28 +36,35 @@ export default function ManageFichasPage() {
         } finally {
             setLoading(false);
         }
-    };
-
-    const fetchInstructors = async () => {
-        if (!user || user.role !== 'admin') return;
-        try {
-            const response = await api.get('auth/users/', { params: { role: 'instructor' } });
-            setInstructors(response.data.results || []);
-        } catch (err) {
-            console.error("Failed to fetch instructors for filter", err);
-        }
-    };
+    }, [user, filters]);
 
     useEffect(() => {
+        const fetchInstructors = async () => {
+            if (!user || user.role !== 'admin') return;
+            try {
+                const response = await api.get('auth/users/', { params: { role: 'instructor' } });
+                setInstructors(response.data.results || []);
+            } catch (err) {
+                console.error("Failed to fetch instructors for filter", err);
+            }
+        };
+
+        if (user) {
+            fetchFichas();
+            fetchInstructors();
+        }
+    }, [user, fetchFichas]);
+
+    const handleApplyFilters = () => {
         fetchFichas();
-        fetchInstructors();
-    }, [user]);
+    };
 
     const handleDelete = async (fichaId) => {
         if (!confirm("¿Estás seguro de que quieres eliminar esta ficha?")) return;
         try {
             await api.delete(`attendance/fichas/${fichaId}/`);
-            setFichas(fichas.filter(f => f.id !== fichaId));
+            alert("Ficha eliminada con éxito.");
+            fetchFichas(); // Refresh list
         } catch (err) {
             alert("No se pudo eliminar la ficha.");
         }
@@ -83,31 +90,28 @@ export default function ManageFichasPage() {
             instructor_ids: formData.getAll('instructor_ids')
         };
         
-        // Basic frontend validation
         if (!data.numero_ficha || !data.programa_formacion) {
             alert("Número de ficha y programa son requeridos.");
             return;
         }
 
-        const promise = editingFicha
-            ? api.patch(`attendance/fichas/${editingFicha.id}/`, data)
-            : api.post('attendance/fichas/', data);
-
         try {
-            await promise;
-            await fetchFichas(); // Refresh list
+            if (editingFicha) {
+                await api.patch(`attendance/fichas/${editingFicha.id}/`, data);
+            } else {
+                await api.post('attendance/fichas/', data);
+            }
+            alert("Ficha guardada con éxito.");
+            fetchFichas(); // Refresh list
             handleCloseModal();
         } catch (err) {
-            alert(`Error al guardar la ficha: ${err.response?.data?.detail || Object.values(err.response?.data || {}).flat().join(', ') || 'Error desconocido'}`);
+            const errorMsg = err.response?.data?.detail || Object.values(err.response?.data || {}).flat().join(', ') || 'Error desconocido';
+            alert(`Error al guardar la ficha: ${errorMsg}`);
         }
     };
 
     const handleFilterChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
-    };
-
-    const handleApplyFilters = () => {
-        fetchFichas();
     };
 
     if (loading) return <div className="text-center p-10">Cargando fichas...</div>;
@@ -158,7 +162,7 @@ export default function ManageFichasPage() {
                                     <td className="py-3 px-4">{ficha.numero_ficha}</td>
                                     <td className="py-3 px-4">{ficha.programa_formacion}</td>
                                     <td className="py-3 px-4">{ficha.jornada || 'N/A'}</td>
-                                    <td className="py-3 px-4">{ficha.instructors?.map(i => i.username).join(', ') || 'N/A'}</td>
+                                    <td className="py-3 px-4">{ficha.instructors?.map(i => `${i.first_name} ${i.last_name}`).join(', ') || 'N/A'}</td>
                                     <td className="py-3 px-4 space-x-2">
                                         <button onClick={() => handleOpenModal(ficha)} className="text-yellow-400 hover:text-yellow-300">Editar</button>
                                         <button onClick={() => handleDelete(ficha.id)} className="text-red-500 hover:text-red-400">Eliminar</button>

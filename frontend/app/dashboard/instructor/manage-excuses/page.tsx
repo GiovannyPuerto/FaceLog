@@ -740,10 +740,10 @@ export default function ManageExcusesPage() {
                                                     <div className="excuse-header">
                                                         <div style={{ flex: '1' }}>
                                                             <div className="excuse-student">
-                                                                 {excuse.student.first_name} {excuse.student.last_name}
+                                                                 {excuse.student?.first_name} {excuse.student?.last_name}
                                                             </div>
                                                             <div className="excuse-meta">
-                                                                 Ficha: {excuse.session.ficha.numero_ficha}
+                                                                 Ficha: {excuse.session?.ficha?.numero_ficha || 'N/A'}
                                                             </div>
                                                             <div className="excuse-meta">
                                                                  Sesión: {new Date(excuse.session.date).toLocaleDateString('es-CO')}

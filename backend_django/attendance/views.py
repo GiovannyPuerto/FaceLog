@@ -55,6 +55,32 @@ def _get_global_report_data(view_instance):
         num_sessions=Count('fichas__sessions')
     ).order_by('-num_sessions')[:5]
 
+    # Nuevas estadísticas
+    total_recorded_attendances = filtered_attendance.filter(status__in=['present', 'late', 'excused']).count()
+    total_expected_attendances = filtered_attendance.count()
+    overall_attendance_percentage = (total_recorded_attendances / total_expected_attendances * 100) if total_expected_attendances > 0 else 0
+
+    top_5_students_with_most_absences = User.objects.filter(
+        role='student',
+        attendance__in=filtered_attendance,
+        attendance__status='absent'
+    ).annotate(
+        num_absences=Count('attendance')
+    ).order_by('-num_absences')[:5]
+
+    # Apply date filters to excuses
+    date_from_str = view_instance.request.query_params.get('date_from')
+    date_to_str = view_instance.request.query_params.get('date_to')
+
+    excuse_queryset = Excuse.objects.all()
+    if date_from_str:
+        excuse_queryset = excuse_queryset.filter(created_at__gte=date_from_str)
+    if date_to_str:
+        excuse_queryset = excuse_queryset.filter(created_at__lte=date_to_str)
+
+    approved_excuses_count = excuse_queryset.filter(status='approved').count()
+    rejected_excuses_count = excuse_queryset.filter(status='rejected').count()
+
     data = {
         'total_fichas': total_fichas,
         'total_instructors': total_instructors,
@@ -62,6 +88,9 @@ def _get_global_report_data(view_instance):
         'total_sessions': total_sessions,
         'total_excuses': total_excuses,
         'pending_excuses_count': pending_excuses_count,
+        'approved_excuses_count': approved_excuses_count,
+        'rejected_excuses_count': rejected_excuses_count,
+        'overall_attendance_percentage': round(overall_attendance_percentage, 2),
         'attendance_by_status': {
             'present': stats_dict.get('present', 0),
             'absent': stats_dict.get('absent', 0),
@@ -75,6 +104,10 @@ def _get_global_report_data(view_instance):
         'instructores_con_mas_sesiones': [
             f"{instructor.get_full_name() or instructor.username}: {instructor.num_sessions} sesiones"
             for instructor in instructores_con_mas_sesiones
+        ],
+        'students_con_mas_inasistencias': [
+            f"{student.get_full_name() or student.username}: {student.num_absences} inasistencias"
+            for student in top_5_students_with_most_absences
         ]
     }
     return data
@@ -133,6 +166,40 @@ class FichaViewSet(viewsets.ModelViewSet):
             print(f"Error in FichaViewSet get_queryset: {e}")
             traceback.print_exc()
             raise e
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+
+        # Handle instructors
+        instructor_ids = request.data.get('instructor_ids', [])
+        ficha = serializer.instance
+        if instructor_ids:
+            instructors = User.objects.filter(id__in=instructor_ids)
+            ficha.instructors.set(instructors)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        # Handle instructors
+        instructor_ids = request.data.get('instructor_ids', [])
+        if instructor_ids:
+            instructors = User.objects.filter(id__in=instructor_ids)
+            instance.instructors.set(instructors)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been used, we need to update the prefetched result.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
 
 class InstructorFichaListView(generics.ListAPIView):
     """
@@ -448,6 +515,9 @@ class GlobalAttendancePDFReportView(generics.GenericAPIView):
                 ["Total de Sesiones", report_data['total_sessions']],
                 ["Total de Excusas", report_data['total_excuses']],
                 ["Excusas Pendientes", report_data['pending_excuses_count']],
+                ["Excusas Aprobadas", report_data['approved_excuses_count']],
+                ["Excusas Rechazadas", report_data['rejected_excuses_count']],
+                ["% Asistencia General", f"{report_data['overall_attendance_percentage']:.2f}%"]
             ]
             summary_table = Table(summary_data, colWidths=[3 * inch, 1.5 * inch])
             summary_table.setStyle(TableStyle([
@@ -518,9 +588,19 @@ class FichaAttendanceReportView(generics.GenericAPIView):
         students = ficha.students.all()
         attendances = Attendance.objects.filter(session__in=sessions).select_related('student', 'session')
 
-        student_attendances = {student.id: {} for student in students}
+        total_students = students.count()
+        total_present = attendances.filter(status='present').count()
+        total_absent = attendances.filter(status='absent').count()
+        total_late = attendances.filter(status='late').count()
+
+        detailed_records = []
         for att in attendances:
-            student_attendances[att.student_id][att.session_id] = {"id": att.id, "status": att.status}
+            detailed_records.append({
+                'student_name': att.student.get_full_name() or att.student.username,
+                'date': att.session.date,
+                'status': att.status,
+                'time': att.check_in_time
+            })
 
         response_data = {
             "ficha": {
@@ -528,16 +608,11 @@ class FichaAttendanceReportView(generics.GenericAPIView):
                 "numero_ficha": ficha.numero_ficha,
                 "programa_formacion": ficha.programa_formacion,
             },
-            "sessions": [
-                {"id": s.id, "date": s.date, "start_time": s.start_time} for s in sessions
-            ],
-            "students": [
-                {
-                    "id": s.id,
-                    "full_name": s.get_full_name() or s.username,
-                    "attendances": student_attendances.get(s.id, {})
-                } for s in students
-            ]
+            "total_students": total_students,
+            "total_present": total_present,
+            "total_absent": total_absent,
+            "total_late": total_late,
+            "detailed_records": detailed_records
         }
 
         return Response(response_data)

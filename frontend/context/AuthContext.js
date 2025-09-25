@@ -49,6 +49,7 @@ export const AuthProvider = ({ children }) => {
                 fullName: decodedToken.full_name,
             };
             setUser(userData);
+            setLoading(false);
 
             // Redirect based on role
             switch (userData.role) {
@@ -109,7 +110,7 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={{ user, loading, error, login, register, logout }}>
-            {children}
+            {loading ? <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '2rem' }}>Cargando...</div> : children}
         </AuthContext.Provider>
     );
 };

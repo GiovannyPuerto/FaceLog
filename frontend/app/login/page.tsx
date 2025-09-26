@@ -1,14 +1,44 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useAuth from '../../hooks/useAuth';
 import Link from 'next/link';
 import { Container, Card, Form, Button, Alert } from 'react-bootstrap';
+import Image from 'next/image';
+import { Sun, Moon, Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import '../../i18n';
 
 export default function LoginPage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const { login, error, loading } = useAuth();
+    const { t, i18n } = useTranslation();
+    const [theme, setTheme] = useState('light');
+
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        // Sincronizar el idioma de i18next con el estado local si es necesario
+        const savedLang = localStorage.getItem('i18nextLng') || 'es';
+        if (i18n.language !== savedLang) {
+            i18n.changeLanguage(savedLang);
+        }
+    }, [i18n]);
+
+    const toggleTheme = () => {
+        const newTheme = theme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+        document.documentElement.setAttribute('data-theme', newTheme);
+    };
+
+    const toggleLanguage = () => {
+        const newLang = i18n.language === 'es' ? 'en' : 'es';
+        i18n.changeLanguage(newLang);
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -219,10 +249,16 @@ export default function LoginPage() {
                     font-weight: 500 !important;
                 }
 
-                .theme-toggle {
+                .control-buttons-container {
                     position: fixed;
                     top: 20px;
                     right: 20px;
+                    display: flex;
+                    gap: 10px;
+                    z-index: 1000;
+                }
+
+                .control-button {
                     background: var(--bg-card);
                     border: 2px solid var(--border-color);
                     border-radius: 50%;
@@ -236,12 +272,16 @@ export default function LoginPage() {
                     color: var(--text-primary);
                     box-shadow: var(--shadow-card);
                     font-size: 1.2rem;
-                    z-index: 1000;
                 }
 
-                .theme-toggle:hover {
-                    transform: scale(1.1) rotate(180deg);
+                .control-button:hover {
+                    transform: scale(1.1) rotate(12deg);
                     box-shadow: var(--shadow-hover);
+                }
+                
+                .language-text {
+                    font-size: 0.9rem;
+                    font-weight: 700;
                 }
 
                 @media (max-width: 576px) {
@@ -254,28 +294,37 @@ export default function LoginPage() {
                         font-size: 1.7rem !important;
                     }
                     
-                    .theme-toggle {
+                    .control-buttons-container {
                         top: 15px;
                         right: 15px;
+                    }
+
+                    .control-button {
                         width: 45px;
                         height: 45px;
                         font-size: 1rem;
                     }
+                    
+                    
                 }
             `}</style>
 
-            {/* Toggle de tema */}
-            <div 
-                className="theme-toggle d-none d-md-flex"
-                onClick={() => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    document.documentElement.setAttribute('data-theme', 
-                        currentTheme === 'dark' ? 'light' : 'dark'
-                    );
-                }}
-                title="Cambiar tema"
-            >
-                🌓
+            <div className="control-buttons-container">
+                <div 
+                    className="control-button"
+                    onClick={toggleTheme}
+                    title={t('common_change_theme')}
+                >
+                    {theme === 'light' ? <Moon size={22} /> : <Sun size={22} />}
+                </div>
+                <div 
+                    className="control-button"
+                    onClick={toggleLanguage}
+                    title={t('language')}
+                >
+                    <Globe size={22} />
+                    <span className="language-text ms-1">{i18n.language.toUpperCase()}</span>
+                </div>
             </div>
 
             <Container 
@@ -283,42 +332,22 @@ export default function LoginPage() {
                 style={{ minHeight: '100vh' }}
             >
                 <Card className="modern-card w-100" style={{ maxWidth: '450px' }}>
-                    <Card.Body className="p-4 p-md-5">
+                    <Card.Body className="p-1 p-md-5">
                         <div className="text-center mb-4">
-                            <div className="d-flex justify-content-center align-items-center mb-3">
-                                <div 
-                                    style={{
-                                        width: '60px',
-                                        height: '60px',
-                                        background: 'var(--button-gradient)',
-                                        borderRadius: '50%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '24px',
-                                        marginRight: '15px',
-                                        boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)'
-                                    }}
-                                >
-                                    🔍
-                                </div>
-                                <h1 className="modern-title mb-0">
-                                    Face Log
-                                </h1>
-                            </div>
+                                <Image className= "logo" src="/logo.png" alt="Face Log Logo" width={260} height={115} priority />
                             <p className="modern-text mb-4" style={{ fontSize: '0.9rem', opacity: 0.8 }}>
-                                Sistema de Asistencia con Reconocimiento Facial
+                                {t('login_subtitle')}
                             </p>
                         </div>
                         
                         <Form onSubmit={handleSubmit}>
                             <Form.Group className="mb-4" controlId="formBasicUsername">
                                 <Form.Label className="modern-label">
-                                     Usuario
+                                     {t('login_username_label')}
                                 </Form.Label>
                                 <Form.Control 
                                     type="text" 
-                                    placeholder="Ingresa tu usuario" 
+                                    placeholder={t('login_username_placeholder')}
                                     value={username} 
                                     onChange={(e) => setUsername(e.target.value)} 
                                     required 
@@ -328,11 +357,11 @@ export default function LoginPage() {
 
                             <Form.Group className="mb-4" controlId="formBasicPassword">
                                 <Form.Label className="modern-label">
-                                     Contraseña
+                                     {t('login_password_label')}
                                 </Form.Label>
                                 <Form.Control 
                                     type="password" 
-                                    placeholder="Contraseña" 
+                                    placeholder={t('login_password_placeholder')}
                                     value={password} 
                                     onChange={(e) => setPassword(e.target.value)} 
                                     required 
@@ -342,7 +371,7 @@ export default function LoginPage() {
 
                             {error && (
                                 <Alert variant="danger" className="modern-alert mb-4">
-                                    ⚠️ {error}
+                                    ⚠️ {t('login_error_generic')}
                                 </Alert>
                             )}
 
@@ -355,11 +384,11 @@ export default function LoginPage() {
                                 {loading ? (
                                     <>
                                         <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                        Iniciando...
+                                        {t('login_loading_button')}
                                     </>
                                 ) : (
                                     <>
-                                         Acceder
+                                         {t('login_button')}
                                     </>
                                 )}
                             </Button>
@@ -367,14 +396,14 @@ export default function LoginPage() {
                         
                         <div className="text-center">
                             <p className="modern-text mb-3">
-                                ¿No tienes una cuenta? {' '}
+                                {t('login_no_account')} {' '}
                                 <Link href="/register" className="modern-link">
-                                    Regístrate aquí
+                                    {t('login_register_link')}
                                 </Link>
                             </p>
                             <p className="modern-text mb-0">
                                 <Link href="/forgot-password" className="modern-link">
-                                    ¿Olvidaste tu contraseña?
+                                    {t('login_forgot_password')}
                                 </Link>
                             </p>
                         </div>

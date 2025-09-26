@@ -1,12 +1,14 @@
 "use client";
-
+//frontend/app/dashboard/admin/manage-instructors/page.tsx
 import { useState, useEffect } from 'react';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
 import { Container, Card, Button, Table, Form, Row, Col, Modal, Alert, Spinner, Badge } from 'react-bootstrap';
+import { useTranslation } from 'react-i18next';
 
 export default function ManageInstructorsPage() {
     const { user } = useAuth();
+    const { t } = useTranslation();
     const [instructors, setInstructors] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -20,7 +22,7 @@ export default function ManageInstructorsPage() {
             const response = await api.get('auth/users/', { params: { role: 'instructor' } });
             setInstructors(response.data.results || []);
         } catch (err) {
-            setError("No se pudieron cargar los instructores.");
+            setError(t('admin_manage_instructors.error'));
         } finally {
             setLoading(false);
         }
@@ -31,12 +33,12 @@ export default function ManageInstructorsPage() {
     }, [user]);
 
     const handleDelete = async (instructorId) => {
-        if (!confirm("¿Estás seguro de que quieres eliminar este instructor?")) return;
+        if (!confirm(t('admin_manage_instructors.confirm_delete'))) return;
         try {
             await api.delete(`auth/users/${instructorId}/`);
             setInstructors(instructors.filter(i => i.id !== instructorId));
         } catch (err) {
-            alert("No se pudo eliminar el instructor.");
+            alert(t('admin_manage_instructors.error_deleting'));
         }
     };
 
@@ -63,7 +65,7 @@ export default function ManageInstructorsPage() {
             await fetchInstructors();
             setShowModal(false);
         } catch (err) {
-            alert(`Error al guardar el instructor: ${err.response?.data?.detail || Object.values(err.response?.data || {}).flat().join(', ') || 'Error desconocido'}`);
+            alert(t('admin_manage_instructors.error_saving', { error: err.response?.data?.detail || Object.values(err.response?.data || {}).flat().join(', ') || t('unknown_error') }));
         }
     };
 
@@ -71,7 +73,7 @@ export default function ManageInstructorsPage() {
         return (
             <div className="modern-loading">
                 <Spinner animation="border" className="modern-spinner" />
-                <div className="modern-loading-text">Cargando instructores...</div>
+                <div className="modern-loading-text">{t('admin_manage_instructors.loading')}</div>
             </div>
         );
     }
@@ -108,6 +110,9 @@ export default function ManageInstructorsPage() {
                     --alert-danger-text: #842029;
                     --modal-bg: #ffffff;
                     --modal-border: #dee2e6;
+                    --table-bg: #ffffff;
+                    --table-text: #212529;
+                    --table-hover-bg: rgba(102, 126, 234, 0.05);
                 }
 
                 [data-theme="dark"] {
@@ -131,6 +136,9 @@ export default function ManageInstructorsPage() {
                     --alert-danger-text: #f85149;
                     --modal-bg: #21262d;
                     --modal-border: #30363d;
+                    --table-bg: #161b22;
+                    --table-text: #f0f6fc;
+                    --table-hover-bg: rgba(88, 166, 255, 0.1);
                 }
 
                 body {
@@ -181,12 +189,14 @@ export default function ManageInstructorsPage() {
                     transition: all 0.3s ease !important;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
+                    color: white !important;
                 }
 
                 .modern-button-primary:hover {
                     background: var(--button-hover) !important;
                     transform: translateY(-2px) !important;
                     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
+                    color: white !important;
                 }
 
                 .modern-button-success {
@@ -198,11 +208,13 @@ export default function ManageInstructorsPage() {
                     transition: all 0.3s ease !important;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
+                    color: white !important;
                 }
 
                 .modern-button-success:hover {
                     background: var(--button-success-hover) !important;
                     transform: translateY(-1px) !important;
+                    color: white !important;
                 }
 
                 .modern-button-danger {
@@ -213,11 +225,13 @@ export default function ManageInstructorsPage() {
                     font-weight: 600 !important;
                     transition: all 0.3s ease !important;
                     font-size: 0.9rem;
+                    color: white !important;
                 }
 
                 .modern-button-danger:hover {
                     background: var(--button-danger-hover) !important;
                     transform: translateY(-1px) !important;
+                    color: white !important;
                 }
 
                 .modern-button-warning {
@@ -247,7 +261,7 @@ export default function ManageInstructorsPage() {
                 }
 
                 .modern-input:focus {
-                    border-color: var(--button-gradient) !important;
+                    border-color: #667eea !important;
                     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
                     background: var(--bg-card) !important;
                     color: var(--text-primary) !important;
@@ -261,7 +275,8 @@ export default function ManageInstructorsPage() {
                 }
 
                 .modern-table {
-                    background: var(--bg-card) !important;
+                    background: var(--table-bg) !important;
+                    color: var(--table-text) !important;
                 }
 
                 .modern-table th {
@@ -278,21 +293,29 @@ export default function ManageInstructorsPage() {
                 .modern-table td {
                     padding: 12px !important;
                     border-bottom: 1px solid var(--border-color) !important;
-                    color: var(--text-primary) !important;
+                    color: var(--table-text) !important;
                     font-weight: 500 !important;
                     vertical-align: middle !important;
+                    background: var(--table-bg) !important;
                 }
 
-                .modern-table td * {
-                    color: var(--text-primary) !important;
+                /* Asegurar que todos los elementos dentro de las celdas tengan el color correcto */
+                .modern-table td,
+                .modern-table td *:not(.btn):not(.status-badge) {
+                    color: var(--table-text) !important;
+                }
+
+                /* Específicamente para los spans con clase text-muted */
+                .modern-table td .text-muted {
+                    color: var(--text-secondary) !important;
                 }
 
                 .modern-table tbody tr:hover {
-                    background: rgba(102, 126, 234, 0.05) !important;
+                    background: var(--table-hover-bg) !important;
                 }
 
-                [data-theme="dark"] .modern-table tbody tr:hover {
-                    background: rgba(88, 166, 255, 0.1) !important;
+                .modern-table tbody tr:hover td {
+                    background: var(--table-hover-bg) !important;
                 }
 
                 .modern-modal .modal-content {
@@ -369,12 +392,12 @@ export default function ManageInstructorsPage() {
 
                 .status-active {
                     background: var(--button-success);
-                    color: white;
+                    color: white !important;
                 }
 
                 .status-inactive {
                     background: var(--text-secondary);
-                    color: white;
+                    color: white !important;
                 }
 
                 .theme-toggle {
@@ -437,33 +460,61 @@ export default function ManageInstructorsPage() {
                         font-size: 1rem;
                     }
                 }
-            `}</style>
 
-            {/* Toggle de tema */}
-            <div 
-                className="theme-toggle d-none d-md-flex"
-                onClick={() => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    document.documentElement.setAttribute('data-theme', 
-                        currentTheme === 'dark' ? 'light' : 'dark'
-                    );
-                }}
-                title="Cambiar tema"
-            >
-                🌓
-            </div>
+                @media (max-width: 767.98px) {
+                    .modern-table thead {
+                        display: none;
+                    }
+
+                    .modern-table tbody,
+                    .modern-table tr {
+                        display: block;
+                        width: 100%;
+                    }
+
+                    .modern-table tr {
+                        margin-bottom: 1rem;
+                        border: 1px solid var(--border-color);
+                        border-radius: 12px;
+                        overflow: hidden;
+                        box-shadow: var(--shadow-card);
+                        background: var(--table-bg) !important;
+                    }
+
+                    .modern-table td {
+                        display: block;
+                        text-align: right;
+                        padding-left: 15px;
+                        border: none;
+                        border-bottom: 1px solid var(--border-color);
+                        background: var(--table-bg) !important;
+                    }
+
+                    .modern-table td:last-child {
+                        border-bottom: none;
+                    }
+
+                    .modern-table td::before {
+                        content: attr(data-label);
+                        float: left;
+                        font-weight: 700;
+                        color: var(--text-secondary);
+                        padding-right: 15px;
+                    }
+                }
+            `}</style>
 
             <div className="modern-instructors-container">
                 <Container fluid className="h-100">
                     <div className="d-flex justify-content-between align-items-center mb-4">
                         <h1 className="modern-title">
-                            Gestionar Instructores
+                            {t('admin_manage_instructors.title')}
                         </h1>
                         <Button 
                             onClick={() => handleOpenModal()} 
                             className="modern-button-primary"
                         >
-                            Crear Instructor
+                            {t('admin_manage_instructors.create_instructor')}
                         </Button>
                     </div>
 
@@ -472,11 +523,11 @@ export default function ManageInstructorsPage() {
                         <Table responsive className="modern-table mb-0">
                             <thead>
                                 <tr>
-                                    <th>Username</th>
-                                    <th>Nombre Completo</th>
-                                    <th>Email</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
+                                    <th>{t('admin_manage_instructors.table_header_username')}</th>
+                                    <th>{t('admin_manage_instructors.table_header_full_name')}</th>
+                                    <th>{t('admin_manage_instructors.table_header_email')}</th>
+                                    <th>{t('admin_manage_instructors.table_header_status')}</th>
+                                    <th>{t('admin_manage_instructors.table_header_actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -484,36 +535,36 @@ export default function ManageInstructorsPage() {
                                     <tr>
                                         <td colSpan={5} className="text-center py-4">
                                             <span className="text-muted">
-                                                No hay instructores para mostrar
+                                                {t('admin_manage_instructors.no_instructors')}
                                             </span>
                                         </td>
                                     </tr>
                                 ) : (
                                     instructors.map(instructor => (
                                         <tr key={instructor.id}>
-                                            <td>{instructor.username}</td>
-                                            <td>{instructor.first_name} {instructor.last_name}</td>
-                                            <td>{instructor.email}</td>
-                                            <td>
+                                            <td data-label={t('admin_manage_instructors.table_header_username')}>{instructor.username}</td>
+                                            <td data-label={t('admin_manage_instructors.table_header_full_name')}>{instructor.first_name} {instructor.last_name}</td>
+                                            <td data-label={t('admin_manage_instructors.table_header_email')}>{instructor.email}</td>
+                                            <td data-label={t('admin_manage_instructors.table_header_status')}>
                                                 <span className={`status-badge ${instructor.is_active ? 'status-active' : 'status-inactive'}`}>
-                                                    {instructor.is_active ? 'Activo' : 'Inactivo'}
+                                                    {instructor.is_active ? t('admin_manage_instructors.status_active') : t('admin_manage_instructors.status_inactive')}
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td data-label={t('admin_manage_instructors.table_header_actions')}>
                                                 <div className="d-flex gap-2">
                                                     <Button 
                                                         onClick={() => handleOpenModal(instructor)}
                                                         className="modern-button-warning"
                                                         size="sm"
                                                     >
-                                                        Editar
+                                                        {t('admin_manage_instructors.edit_button')}
                                                     </Button>
                                                     <Button 
                                                         onClick={() => handleDelete(instructor.id)}
                                                         className="modern-button-danger"
                                                         size="sm"
                                                     >
-                                                        Eliminar
+                                                        {t('admin_manage_instructors.delete_button')}
                                                     </Button>
                                                 </div>
                                             </td>
@@ -536,7 +587,7 @@ export default function ManageInstructorsPage() {
             >
                 <Modal.Header closeButton className="modern-modal-header">
                     <Modal.Title className="modern-modal-title">
-                        {editingInstructor ? 'Editar Instructor' : 'Crear Nuevo Instructor'}
+                        {editingInstructor ? t('admin_manage_instructors.modal_edit_title') : t('admin_manage_instructors.modal_create_title')}
                     </Modal.Title>
                 </Modal.Header>
                 
@@ -546,7 +597,7 @@ export default function ManageInstructorsPage() {
                             {!editingInstructor && (
                                 <>
                                     <Col md={6}>
-                                        <Form.Label className="modern-label">Username</Form.Label>
+                                        <Form.Label className="modern-label">{t('admin_manage_instructors.modal_username_label')}</Form.Label>
                                         <Form.Control 
                                             type="text" 
                                             name="username" 
@@ -556,7 +607,7 @@ export default function ManageInstructorsPage() {
                                         />
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="modern-label">Contraseña</Form.Label>
+                                        <Form.Label className="modern-label">{t('admin_manage_instructors.modal_password_label')}</Form.Label>
                                         <Form.Control 
                                             type="password" 
                                             name="password"
@@ -568,7 +619,7 @@ export default function ManageInstructorsPage() {
                             )}
                             
                             <Col md={6}>
-                                <Form.Label className="modern-label">Nombre</Form.Label>
+                                <Form.Label className="modern-label">{t('admin_manage_instructors.modal_name_label')}</Form.Label>
                                 <Form.Control 
                                     type="text" 
                                     name="first_name" 
@@ -578,7 +629,7 @@ export default function ManageInstructorsPage() {
                             </Col>
                             
                             <Col md={6}>
-                                <Form.Label className="modern-label">Apellido</Form.Label>
+                                <Form.Label className="modern-label">{t('admin_manage_instructors.modal_lastname_label')}</Form.Label>
                                 <Form.Control 
                                     type="text" 
                                     name="last_name" 
@@ -588,7 +639,7 @@ export default function ManageInstructorsPage() {
                             </Col>
                             
                             <Col md={12}>
-                                <Form.Label className="modern-label">Email</Form.Label>
+                                <Form.Label className="modern-label">{t('admin_manage_instructors.modal_email_label')}</Form.Label>
                                 <Form.Control 
                                     type="email" 
                                     name="email" 
@@ -601,7 +652,7 @@ export default function ManageInstructorsPage() {
                                 <Form.Check 
                                     type="checkbox" 
                                     name="is_active" 
-                                    label="Instructor Activo"
+                                    label={t('admin_manage_instructors.modal_active_label')}
                                     defaultChecked={editingInstructor?.is_active}
                                     className="modern-label mt-3"
                                 />
@@ -615,13 +666,13 @@ export default function ManageInstructorsPage() {
                             onClick={() => setShowModal(false)}
                             className="me-2"
                         >
-                            Cancelar
+                            {t('admin_manage_instructors.modal_cancel')}
                         </Button>
                         <Button 
                             type="submit"
                             className="modern-button-success"
                         >
-                            Guardar Instructor
+                            {t('admin_manage_instructors.modal_save')}
                         </Button>
                     </Modal.Footer>
                 </Form>

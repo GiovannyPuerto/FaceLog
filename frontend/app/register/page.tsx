@@ -4,11 +4,15 @@ import { useState, useRef, useEffect } from 'react';
 import useAuth from '../../hooks/useAuth';
 import Link from 'next/link';
 import { Container, Card, Form, Button, Alert, Modal, Row, Col, Image } from 'react-bootstrap';
+import { useTranslation } from 'react-i18next';
+import { Sun, Moon, Globe } from 'lucide-react';
+import '../../i18n';
 
 // --- Camera Capture Modal Component (using react-bootstrap) ---
 const CameraCaptureModal = ({ isOpen, onClose, onCapture }) => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
+    const { t } = useTranslation();
 
     const startCamera = async () => {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -19,7 +23,7 @@ const CameraCaptureModal = ({ isOpen, onClose, onCapture }) => {
                 }
             } catch (error) {
                 console.error("Error accessing camera: ", error);
-                alert("No se pudo acceder a la cámara. Asegúrate de tener una y de haber dado los permisos.");
+                alert(t('register_camera_error_alert'));
             }
         }
     };
@@ -40,7 +44,6 @@ const CameraCaptureModal = ({ isOpen, onClose, onCapture }) => {
             const context = canvas.getContext('2d');
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             canvas.toBlob(onCapture, 'image/jpeg');
-            // Do not close modal here, allow multiple captures
         }
     };
 
@@ -55,7 +58,7 @@ const CameraCaptureModal = ({ isOpen, onClose, onCapture }) => {
         <Modal show={isOpen} onHide={onClose} size="lg" centered className="modern-modal">
             <Modal.Header closeButton className="modern-modal-header">
                 <Modal.Title className="modern-modal-title">
-                     Capturar Foto de Rostro
+                    {t('register_camera_modal_title')}
                 </Modal.Title>
             </Modal.Header>
             <Modal.Body className="text-center modern-modal-body">
@@ -67,15 +70,15 @@ const CameraCaptureModal = ({ isOpen, onClose, onCapture }) => {
                 </div>
                 <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
                 <p className="mt-3 modern-camera-text">
-                    Asegúrate de que tu rostro esté bien iluminado y centrado en el óvalo. Toma varias fotos desde diferentes ángulos.
+                    {t('register_camera_modal_instructions')}
                 </p>
             </Modal.Body>
             <Modal.Footer className="modern-modal-footer">
                 <Button variant="secondary" onClick={onClose} className="modern-button-secondary">
-                    Cerrar
+                    {t('register_camera_modal_close_button')}
                 </Button>
                 <Button variant="primary" onClick={handleCapture} className="modern-button-primary">
-                     Capturar Otra
+                    {t('register_camera_modal_capture_button')}
                 </Button>
             </Modal.Footer>
         </Modal>
@@ -86,11 +89,35 @@ const CameraCaptureModal = ({ isOpen, onClose, onCapture }) => {
 export default function RegisterPage() {
     const [formData, setFormData] = useState({ username: '', email: '', password: '', password2: '', first_name: '', last_name: '', student_id: '', ficha_numero: '' });
     const { register, error, loading } = useAuth();
+    const { t, i18n } = useTranslation();
+    const [theme, setTheme] = useState('light');
 
-    // New state variables
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const [faceImages, setFaceImages] = useState([]); // Stores actual image files/blobs
     const [faceImagePreviews, setFaceImagePreviews] = useState([]); // Stores URLs for previews
+
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        setTheme(savedTheme);
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        const savedLang = localStorage.getItem('i18nextLng') || 'es';
+        if (i18n.language !== savedLang) {
+            i18n.changeLanguage(savedLang);
+        }
+    }, [i18n]);
+
+    const toggleTheme = () => {
+        const newTheme = theme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
+        document.documentElement.setAttribute('data-theme', newTheme);
+    };
+
+    const toggleLanguage = () => {
+        const newLang = i18n.language === 'es' ? 'en' : 'es';
+        i18n.changeLanguage(newLang);
+    };
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -110,7 +137,7 @@ export default function RegisterPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (formData.password !== formData.password2) { alert("Las contraseñas no coinciden."); return; }
+        if (formData.password !== formData.password2) { alert(t("passwords_do_not_match")); return; }
 
         const dataToSubmit = new FormData();
         for (const key in formData) {
@@ -510,10 +537,16 @@ export default function RegisterPage() {
                     padding: 20px 30px;
                 }
 
-                .theme-toggle {
+                .control-buttons-container {
                     position: fixed;
                     top: 20px;
                     right: 20px;
+                    display: flex;
+                    gap: 10px;
+                    z-index: 1000;
+                }
+
+                .control-button {
                     background: var(--bg-card);
                     border: 2px solid var(--border-color);
                     border-radius: 50%;
@@ -527,12 +560,16 @@ export default function RegisterPage() {
                     color: var(--text-primary);
                     box-shadow: var(--shadow-card);
                     font-size: 1.2rem;
-                    z-index: 1000;
                 }
 
-                .theme-toggle:hover {
-                    transform: scale(1.1) rotate(180deg);
+                .control-button:hover {
+                    transform: scale(1.1) rotate(12deg);
                     box-shadow: var(--shadow-hover);
+                }
+                
+                .language-text {
+                    font-size: 0.9rem;
+                    font-weight: 700;
                 }
 
                 @media (max-width: 768px) {
@@ -550,9 +587,12 @@ export default function RegisterPage() {
                         margin: 15px 0;
                     }
                     
-                    .theme-toggle {
+                    .control-buttons-container {
                         top: 15px;
                         right: 15px;
+                    }
+
+                    .control-button {
                         width: 45px;
                         height: 45px;
                         font-size: 1rem;
@@ -564,18 +604,22 @@ export default function RegisterPage() {
                 }
             `}</style>
 
-            {/* Toggle de tema */}
-            <div 
-                className="theme-toggle d-none d-md-flex"
-                onClick={() => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    document.documentElement.setAttribute('data-theme', 
-                        currentTheme === 'dark' ? 'light' : 'dark'
-                    );
-                }}
-                title="Cambiar tema"
-            >
-                🌓
+            <div className="control-buttons-container">
+                <div 
+                    className="control-button"
+                    onClick={toggleTheme}
+                    title={t('common_change_theme')}
+                >
+                    {theme === 'light' ? <Moon size={22} /> : <Sun size={22} />}
+                </div>
+                <div 
+                    className="control-button"
+                    onClick={toggleLanguage}
+                    title={t('language')}
+                >
+                    <Globe size={22} />
+                    <span className="language-text ms-1">{i18n.language.toUpperCase()}</span>
+                </div>
             </div>
 
             <Container className="modern-container d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
@@ -597,14 +641,14 @@ export default function RegisterPage() {
                                         boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)'
                                     }}
                                 >
-                                    🔍
+                                    📝
                                 </div>
                                 <h1 className="modern-title mb-0">
-                                    Face Log
+                                    {t('register_page_title')}
                                 </h1>
                             </div>
                             <p className="modern-text mb-4" style={{ fontSize: '0.9rem', opacity: 0.8 }}>
-                                Registro de Aprendiz - Sistema de Reconocimiento Facial
+                                {t('register_page_subtitle')}
                             </p>
                         </div>
 
@@ -614,7 +658,7 @@ export default function RegisterPage() {
                                     <Form.Group className="mb-3">
                                         <Form.Control 
                                             name="first_name" 
-                                            placeholder=" Nombres" 
+                                            placeholder={t('register_first_name_placeholder')} 
                                             onChange={handleChange} 
                                             required 
                                             className="modern-input"
@@ -625,7 +669,7 @@ export default function RegisterPage() {
                                     <Form.Group className="mb-3">
                                         <Form.Control 
                                             name="last_name" 
-                                            placeholder=" Apellidos" 
+                                            placeholder={t('register_last_name_placeholder')} 
                                             onChange={handleChange} 
                                             required 
                                             className="modern-input"
@@ -636,7 +680,7 @@ export default function RegisterPage() {
                                     <Form.Group className="mb-3">
                                         <Form.Control 
                                             name="username" 
-                                            placeholder=" Nombre de usuario" 
+                                            placeholder={t('register_username_placeholder')} 
                                             onChange={handleChange} 
                                             required 
                                             className="modern-input"
@@ -648,7 +692,7 @@ export default function RegisterPage() {
                                         <Form.Control 
                                             name="email" 
                                             type="email" 
-                                            placeholder="Correo electrónico" 
+                                            placeholder={t('register_email_placeholder')} 
                                             onChange={handleChange} 
                                             required 
                                             className="modern-input"
@@ -660,7 +704,7 @@ export default function RegisterPage() {
                                         <Form.Control 
                                             name="password" 
                                             type="password" 
-                                            placeholder=" Contraseña" 
+                                            placeholder={t('register_password_placeholder')} 
                                             onChange={handleChange} 
                                             required 
                                             className="modern-input"
@@ -672,7 +716,7 @@ export default function RegisterPage() {
                                         <Form.Control 
                                             name="password2" 
                                             type="password" 
-                                            placeholder=" Confirmar contraseña" 
+                                            placeholder={t('register_confirm_password_placeholder')} 
                                             onChange={handleChange} 
                                             required 
                                             className="modern-input"
@@ -683,7 +727,7 @@ export default function RegisterPage() {
                                     <Form.Group className="mb-3">
                                         <Form.Control 
                                             name="student_id" 
-                                            placeholder=" Documento de identidad" 
+                                            placeholder={t('register_student_id_placeholder')} 
                                             onChange={handleChange} 
                                             required 
                                             className="modern-input"
@@ -694,7 +738,7 @@ export default function RegisterPage() {
                                     <Form.Group className="mb-3">
                                         <Form.Control 
                                             name="ficha_numero" 
-                                            placeholder="🎓 Número de ficha" 
+                                            placeholder={t('register_ficha_number_placeholder')} 
                                             onChange={handleChange} 
                                             required 
                                             className="modern-input"
@@ -705,21 +749,21 @@ export default function RegisterPage() {
                             
                             <div className="modern-photo-section text-center">
                                 <Form.Label className="modern-label d-block mb-3">
-                                     Fotos de Rostro (Mínimo 1)
+                                     {t('face_photos_title')}
                                 </Form.Label>
                                 <Button 
                                     variant="info" 
                                     onClick={() => setIsCameraOpen(true)}
                                     className="modern-button-info mb-3"
                                 >
-                                     Tomar Foto
+                                     {t('take_photo_button')}
                                 </Button>
                                 <div className="d-flex flex-wrap justify-content-center">
                                     {faceImagePreviews.map((previewUrl, index) => (
                                         <div key={index} className="photo-preview">
                                             <Image 
                                                 src={previewUrl} 
-                                                alt={`Vista previa ${index + 1}`} 
+                                                alt={t('photo_preview_alt', { index: index + 1 })} 
                                                 roundedCircle 
                                                 style={{ width: '120px', height: '120px', objectFit: 'cover' }} 
                                             />
@@ -734,7 +778,7 @@ export default function RegisterPage() {
                                 </div>
                                 {faceImagePreviews.length === 0 && (
                                     <p className="modern-text mt-3 mb-0">
-                                         No hay fotos capturadas aún
+                                         {t('no_photos_captured_yet')}
                                     </p>
                                 )}
                             </div>
@@ -754,20 +798,20 @@ export default function RegisterPage() {
                                 {loading ? (
                                     <>
                                         <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                        Registrando...
+                                        {t('registering_button')}
                                     </>
                                 ) : (
                                     <>
-                                         Crear Cuenta
+                                         {t('create_account_button')}
                                     </>
                                 )}
                             </Button>
                         </Form>
                         <div className="text-center mt-4">
                             <p className="modern-text">
-                                ¿Ya tienes una cuenta? {' '}
+                                {t('already_have_account')} {' '}
                                 <Link href="/login" className="modern-link">
-                                    Inicia sesión aquí
+                                    {t('login_here_link')}
                                 </Link>
                             </p>
                         </div>

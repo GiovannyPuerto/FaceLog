@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import api from '../../../lib/api';
 import useAuth from '../../../hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 
 const StatCard = ({ title, value, extra = null }) => (
     <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -14,7 +15,12 @@ const StatCard = ({ title, value, extra = null }) => (
 );
 
 export default function AdminDashboardPage() {
+
+    const { user } = useAuth();
+    const { t } = useTranslation();
+
     const { user, loading: authLoading } = useAuth(); // Get authLoading state
+
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -56,16 +62,22 @@ export default function AdminDashboardPage() {
             setError(null);
         } catch (err) {
             console.error("Failed to fetch global report", err);
-            setError("No se pudo cargar el reporte global.");
+            setError(t('admin_dashboard.error'));
         } finally {
             setLoading(false);
 
         }
 
+
+    useEffect(() => {
+        fetchGlobalReport();
+    }, [user, t]);
+
         return () => {
             isMounted = false;
         };
     }, [user, authLoading]);
+
 
     return (
         <>
@@ -135,15 +147,55 @@ export default function AdminDashboardPage() {
             <div className="dashboard-container">
                 <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
                     <h1 className="modern-title">
-                        Dashboard de Administrador
+                        {t('admin_dashboard.title')}
                     </h1>
 
                     {loading ? (
+
+                        <div className="loading-container">
+                            <div className="loading-icon"></div>
+                            <div className="loading-text">{t('admin_dashboard.loading')}</div>
+                        </div>
+
                         <div className="loading-container">Cargando datos del dashboard...</div>
+
                     ) : error ? (
                         <div className="error-container">Error: {error}</div>
                     ) : reportData ? (
                         <div className="summary-grid">
+
+                            <div className="summary-card">
+                                <h3>{t('admin_dashboard.total_fichas')}</h3>
+                                <p>{reportData.total_fichas}</p>
+                            </div>
+                            <div className="summary-card">
+                                <h3>{t('admin_dashboard.total_instructors')}</h3>
+                                <p>{reportData.total_instructors}</p>
+                            </div>
+                            <div className="summary-card">
+                                <h3>{t('admin_dashboard.total_students')}</h3>
+                                <p>{reportData.total_students}</p>
+                            </div>
+                            <div className="summary-card">
+                                <h3>{t('admin_dashboard.total_sessions')}</h3>
+                                <p>{reportData.total_sessions}</p>
+                            </div>
+                            <div className="summary-card">
+                                <h3>{t('admin_dashboard.total_excuses')}</h3>
+                                <p>{reportData.total_excuses}</p>
+                            </div>
+                            <div className="summary-card">
+                                <h3>{t('admin_dashboard.pending_excuses')}</h3>
+                                <p>{reportData.pending_excuses_count}</p>
+                            </div>
+                            {/* Add more summary items as needed from reportData */}
+                        </div>
+                    ) : (
+                        <div className="empty-container">
+                            <div className="empty-icon"></div>
+                            <div className="empty-text">{t('admin_dashboard.no_data')}</div>
+                        </div>
+
                             <StatCard title="Total Fichas" value={reportData.total_fichas} />
                             <StatCard title="Total Instructores" value={reportData.total_instructors} />
                             <StatCard title="Total Aprendices" value={reportData.total_students} />
@@ -152,6 +204,7 @@ export default function AdminDashboardPage() {
                         </div>
                     ) : (
                         <div className="empty-container">No hay datos disponibles para mostrar en el dashboard.</div>
+
                     )}
                 </div>
             </div>

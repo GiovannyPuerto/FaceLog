@@ -213,6 +213,23 @@ export default function StudentAttendancePage() {
                     transform: translateX(5px);
                 }
 
+
+            {loading ? (
+                <div className="text-center p-10">Cargando historial de asistencia...</div>
+            ) : error ? (
+                <div className="text-center p-10 text-red-500">Error: {error}</div>
+            ) : (
+                <div className="bg-gray-800 shadow-lg rounded-lg overflow-hidden">
+                    <ul className="divide-y divide-gray-700">
+                        {logs.length > 0 ? (
+                            logs.map(log => (
+                                <li key={log.id} className="p-4 flex justify-between items-center hover:bg-gray-700 transition-colors">
+                                    <div>
+                                        <p className="font-semibold text-white">Sesión: {log.session.ficha.numero_ficha} - {new Date(log.session.date).toLocaleDateString('es-CO')}</p>
+                                        {log.check_in_time && log.check_in_time.trim() !== '' && (
+                                            <p className="text-sm text-gray-400">Hora: {new Date(log.check_in_time).toLocaleTimeString()}</p>
+                                        )}
+
                 [data-theme="dark"] .modern-attendance-item:hover {
                     background: rgba(88, 166, 255, 0.1);
                 }
@@ -532,6 +549,7 @@ export default function StudentAttendancePage() {
                         
                                         <p>{t('student_attendance.no_records')}</p>
                                         <p>{t('student_attendance.adjust_filters')}</p>
+
                                     </div>
                                 )}
                             </div>

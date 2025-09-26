@@ -30,6 +30,9 @@ export default function GlobalReportsPage() {
     const [filters, setFilters] = useState({ date_from: '', date_to: '', ficha: '' });
     const { t } = useTranslation('translation'); // Added useTranslation hook
 
+
+    const fetchPageData = async () => {
+
     useEffect(() => {
         const fetchFilterData = async () => {
             try {
@@ -44,27 +47,49 @@ export default function GlobalReportsPage() {
 
     const fetchGlobalStats = async () => {
         if (!user || user.role !== 'admin') return;
+
         try {
-            setLoading(true);
-            const response = await api.get('attendance/report/global/', { params: filters });
-            setStats(response.data);
+            const [statsResponse, fichasResponse] = await Promise.all([
+                api.get('attendance/report/global/', { params: filters }),
+                api.get('attendance/fichas/')
+            ]);
+            
+            setStats(statsResponse.data);
+            setFichas(fichasResponse.data.results || []);
+            setError(null);
+
         } catch (err) {
             setError(t('global_reports_error_loading')); // Translated
+
+            console.error("Failed to fetch page data", err);
+            if (err.response && (err.response.status === 401 || err.response.status === 403)){
+                setError("No tienes permiso para ver los reportes.");
+            } else {
+                setError("No se pudieron cargar los datos de la página.");
+            }
+
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
+
+        if (user) { // Only fetch data if user is authenticated
+            fetchPageData();
+        }
+    }, [user]); // Re-run when user object changes
+
         fetchGlobalStats();
     }, [user]);
+
 
     const handleFilterChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
     };
 
     const handleApplyFilters = () => {
-        fetchGlobalStats();
+        fetchPageData();
     };
 
     const handleDownloadPdf = () => {
@@ -489,6 +514,67 @@ export default function GlobalReportsPage() {
             `}</style>
 
 
+
+            {loading ? (
+                <div className="text-center p-10">Cargando reportes...</div>
+            ) : error ? (
+                <div className="text-center p-10 text-red-500">{error}</div>
+            ) : stats && (
+                <div className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <StatCard title="Total Fichas" value={stats.total_fichas} />
+                        <StatCard title="Total Instructores" value={stats.total_instructors} />
+                        <StatCard title="Total Aprendices" value={stats.total_students} />
+                        <StatCard title="Total Sesiones" value={stats.total_sessions} />
+                        <StatCard title="Total Excusas" value={stats.total_excuses} />
+                        <StatCard title="Excusas Pendientes" value={stats.pending_excuses_count} />
+                        <StatCard title="Excusas Aprobadas" value={stats.approved_excuses_count} />
+                        <StatCard title="Excusas Rechazadas" value={stats.rejected_excuses_count} />
+                        <StatCard title="% Asistencia General" value={`${stats.overall_attendance_percentage}%`} />
+                    </div>
+
+                    {/* Attendance by Status */}
+                    <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 className="text-2xl font-bold text-white mb-4">Asistencia por Estado</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {Object.entries(stats.attendance_by_status).map(([status, count]) => (
+                                <StatCard key={status} title={status.charAt(0).toUpperCase() + status.slice(1)} value={count} />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Top 5 Fichas con Más Inasistencias */}
+                    <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 className="text-2xl font-bold text-white mb-4">Top 5 Fichas con Más Inasistencias</h2>
+                        <ul className="list-disc list-inside text-gray-300">
+                            {stats.fichas_con_mas_inasistencias.map((item, index) => (
+                                <li key={index}>{item}</li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Top 5 Estudiantes con Más Inasistencias */}
+                    <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 className="text-2xl font-bold text-white mb-4">Top 5 Estudiantes con Más Inasistencias</h2>
+                        <ul className="list-disc list-inside text-gray-300">
+                            {stats.students_con_mas_inasistencias.map((item, index) => (
+                                <li key={index}>{item}</li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Top 5 Instructores con Más Sesiones */}
+                    <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 className="text-2xl font-bold text-white mb-4">Top 5 Instructores con Más Sesiones</h2>
+                        <ul className="list-disc list-inside text-gray-300">
+                            {stats.instructores_con_mas_sesiones.map((item, index) => (
+                                <li key={index}>{item}</li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <button onClick={handleDownloadPdf} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Descargar PDF del Reporte Actual</button>
+=======
             <div className="global-reports-container">
                 <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
                     <div className="page-header">
@@ -601,7 +687,6 @@ export default function GlobalReportsPage() {
                                 </button>
                             </div>
                         </div>
-                    )}
                 </div>
             </div>
         </>

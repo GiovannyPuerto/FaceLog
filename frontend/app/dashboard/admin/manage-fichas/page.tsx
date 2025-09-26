@@ -1,9 +1,10 @@
 "use client";
-
+//frontend/app/dashboard/admin/manage-fichas/page.tsx
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 
 // Modal Component with theme support
 const Modal = ({ children, onClose }) => (
@@ -17,6 +18,7 @@ const Modal = ({ children, onClose }) => (
 
 export default function ManageFichasPage() {
     const { user } = useAuth();
+    const { t } = useTranslation();
     const [fichas, setFichas] = useState([]);
     const [instructors, setInstructors] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -32,7 +34,7 @@ export default function ManageFichasPage() {
             const response = await api.get('attendance/fichas/', { params: filters });
             setFichas(response.data.results || []);
         } catch (err) {
-            setError("No se pudieron cargar las fichas.");
+            setError(t('admin_manage_fichas.error'));
         } finally {
             setLoading(false);
         }
@@ -54,12 +56,12 @@ export default function ManageFichasPage() {
     }, [user]);
 
     const handleDelete = async (fichaId) => {
-        if (!confirm("¿Estás seguro de que quieres eliminar esta ficha?")) return;
+        if (!confirm(t('admin_manage_fichas.confirm_delete'))) return;
         try {
             await api.delete(`attendance/fichas/${fichaId}/`);
             setFichas(fichas.filter(f => f.id !== fichaId));
         } catch (err) {
-            alert("No se pudo eliminar la ficha.");
+            alert(t('admin_manage_fichas.error_deleting'));
         }
     };
 
@@ -84,7 +86,7 @@ export default function ManageFichasPage() {
         };
         
         if (!data.numero_ficha || !data.programa_formacion) {
-            alert("Número de ficha y programa son requeridos.");
+            alert(t('admin_manage_fichas.required_fields'));
             return;
         }
 
@@ -97,7 +99,7 @@ export default function ManageFichasPage() {
             await fetchFichas();
             handleCloseModal();
         } catch (err) {
-            alert(`Error al guardar la ficha: ${err.response?.data?.detail || Object.values(err.response?.data || {}).flat().join(', ') || 'Error desconocido'}`);
+            alert(t('admin_manage_fichas.error_saving', { error: err.response?.data?.detail || Object.values(err.response?.data || {}).flat().join(', ') || t('unknown_error') }));
         }
     };
 
@@ -217,7 +219,7 @@ export default function ManageFichasPage() {
                     background: var(--button-gradient);
                     border: none;
                     border-radius: 12px;
-                    padding: 12px 24px;
+                    padding: 12px 10px;
                     color: white;
                     font-weight: 700;
                     font-size: 1rem;
@@ -365,7 +367,7 @@ export default function ManageFichasPage() {
                 }
 
                 .action-button {
-                    padding: 6px 12px;
+                    padding: 6px 12px ;
                     border: none;
                     border-radius: 8px;
                     font-size: 0.8rem;
@@ -390,6 +392,7 @@ export default function ManageFichasPage() {
                     transform: translateY(-1px);
                     color: white;
                     text-decoration: none;
+                    
                 }
 
                 .action-delete {
@@ -599,7 +602,7 @@ export default function ManageFichasPage() {
                     .manage-fichas-container {
                         margin-left: 0 !important;
                         padding: 20px 15px;
-                        overflow-x: ;
+                        overflow-x: hidden;
                     }
                     
                     .modern-title {
@@ -621,15 +624,51 @@ export default function ManageFichasPage() {
                         overflow-x: auto;
                     }
                     
-                    .modern-table {
-                        width:  100% !important;
-                        min-width:500px !important;
-                        
+                    .modern-table thead {
+                        display: none;
+                    }
+
+                    .modern-table tbody,
+                    .modern-table tr {
+                        display: block;
+                        width: 100%;
+                    }
+
+                    .modern-table tr {
+                        margin-bottom: 1rem;
+                        border: 1px solid var(--border-color);
+                        border-radius: 12px;
+                        overflow: hidden;
+                        box-shadow: var(--shadow-card);
+                    }
+
+                    .modern-table td {
+                        display: block;
+                        text-align: right;
+                        padding-left: 15px;
+                        border: none;
+                        border-bottom: 1px solid var(--divider-color);
+                    }
+
+                    .modern-table td:last-child {
+                        border-bottom: none;
+                    }
+
+                    .modern-table td::before {
+                        content: attr(data-label);
+                        float: left;
+                        font-weight: 700;
+                        color: var(--text-secondary);
+                        padding-right: 15px;
                     }
                     
                     .action-buttons {
                         flex-direction: column;
                         gap: 0.25rem;
+                        align-items: flex-start; /* Align buttons to the start */
+                    }
+                    .action-button {
+                        width: fit-content; /* Make buttons fit their content */
                     }
                     
                     .modal-actions {
@@ -657,13 +696,12 @@ export default function ManageFichasPage() {
                 }
             `}</style>
 
-           
             <div className="manage-fichas-container">
                 <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
                     {loading ? (
                         <div className="loading-container">
                             <div className="loading-icon">⏳</div>
-                            <div className="loading-text">Cargando fichas...</div>
+                            <div className="loading-text">{t('admin_manage_fichas.loading')}</div>
                         </div>
                     ) : error ? (
                         <div className="error-container">
@@ -674,46 +712,46 @@ export default function ManageFichasPage() {
                         <>
                             <div className="page-header">
                                 <h1 className="modern-title">
-                                    Gestionar Fichas
+                                    {t('admin_manage_fichas.title')}
                                 </h1>
                                 <button onClick={() => handleOpenModal()} className="modern-button">
-                                    Crear Ficha
+                                    {t('admin_manage_fichas.create_ficha')}
                                 </button>
                             </div>
 
                             <div className="filter-section">
                                 <div className="filter-grid">
                                     <div className="form-group">
-                                        <label className="form-label">Número de Ficha</label>
+                                        <label className="form-label">{t('admin_manage_fichas.filter_by_number')}</label>
                                         <input 
                                             type="text" 
                                             name="numero_ficha" 
                                             value={filters.numero_ficha} 
                                             onChange={handleFilterChange} 
                                             className="form-input"
-                                            placeholder="Buscar por número..."
+                                            placeholder={t('admin_manage_fichas.filter_by_number') + '...'}
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">Programa</label>
+                                        <label className="form-label">{t('admin_manage_fichas.filter_by_program')}</label>
                                         <input 
                                             type="text" 
                                             name="programa_formacion" 
                                             value={filters.programa_formacion} 
                                             onChange={handleFilterChange} 
                                             className="form-input"
-                                            placeholder="Buscar por programa..."
+                                            placeholder={t('admin_manage_fichas.filter_by_program') + '...'}
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">Instructor</label>
+                                        <label className="form-label">{t('admin_manage_fichas.filter_by_instructor')}</label>
                                         <select 
                                             name="instructor" 
                                             value={filters.instructor} 
                                             onChange={handleFilterChange} 
                                             className="form-select"
                                         >
-                                            <option value="">Todos</option>
+                                            <option value="">{t('admin_manage_fichas.all_instructors')}</option>
                                             {instructors.map(inst => (
                                                 <option key={inst.id} value={inst.id}>
                                                     {inst.first_name} {inst.last_name}
@@ -723,7 +761,7 @@ export default function ManageFichasPage() {
                                     </div>
                                     <div className="form-group">
                                         <button onClick={handleApplyFilters} className="modern-button">
-                                            Filtrar
+                                            {t('admin_manage_fichas.filter_button')}
                                         </button>
                                     </div>
                                 </div>
@@ -733,41 +771,41 @@ export default function ManageFichasPage() {
                                 <table className="modern-table">
                                     <thead className="table-header">
                                         <tr>
-                                            <th>Número</th>
-                                            <th>Programa</th>
-                                            <th>Jornada</th>
-                                            <th>Instructores</th>
-                                            <th>Acciones</th>
+                                            <th>{t('admin_manage_fichas.table_header_number')}</th>
+                                            <th>{t('admin_manage_fichas.table_header_program')}</th>
+                                            <th>{t('admin_manage_fichas.table_header_journey')}</th>
+                                            <th>{t('admin_manage_fichas.table_header_instructors')}</th>
+                                            <th>{t('admin_manage_fichas.table_header_actions')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {fichas.map(ficha => (
                                             <tr key={ficha.id} className="table-row">
-                                                <td className="table-cell">{ficha.numero_ficha}</td>
-                                                <td className="table-cell">{ficha.programa_formacion}</td>
-                                                <td className="table-cell">{ficha.jornada || 'N/A'}</td>
-                                                <td className="table-cell">
+                                                <td className="table-cell" data-label={t('admin_manage_fichas.table_header_number')}>{ficha.numero_ficha}</td>
+                                                <td className="table-cell" data-label={t('admin_manage_fichas.table_header_program')}>{ficha.programa_formacion}</td>
+                                                <td className="table-cell" data-label={t('admin_manage_fichas.table_header_journey')}>{ficha.jornada || 'N/A'}</td>
+                                                <td className="table-cell" data-label={t('admin_manage_fichas.table_header_instructors')}>
                                                     {ficha.instructors?.map(i => i.username).join(', ') || 'N/A'}
                                                 </td>
-                                                <td className="table-cell">
+                                                <td className="table-cell" data-label={t('admin_manage_fichas.table_header_actions')}>
                                                     <div className="action-buttons">
                                                         <button 
                                                             onClick={() => handleOpenModal(ficha)} 
                                                             className="action-button action-edit"
                                                         >
-                                                            Editar
+                                                            {t('admin_manage_fichas.edit_button')}
                                                         </button>
                                                         <button 
                                                             onClick={() => handleDelete(ficha.id)} 
                                                             className="action-button action-delete"
                                                         >
-                                                            Eliminar
+                                                            {t('admin_manage_fichas.delete_button')}
                                                         </button>
                                                         <Link 
                                                             href={`/dashboard/fichas/${ficha.id}/report`} 
                                                             className="action-button action-report"
                                                         >
-                                                            Reporte
+                                                            {t('admin_manage_fichas.report_button')}
                                                         </Link>
                                                     </div>
                                                 </td>
@@ -784,11 +822,11 @@ export default function ManageFichasPage() {
             {isModalOpen && (
                 <Modal onClose={() => setIsModalOpen(false)}>
                     <h2 className="modal-title">
-                        {editingFicha ? 'Editar' : 'Crear'} Ficha
+                        {editingFicha ? t('admin_manage_fichas.modal_edit_title') : t('admin_manage_fichas.modal_create_title')}
                     </h2>
                     <form onSubmit={handleSave} className="modal-form">
                         <div className="form-group">
-                            <label className="form-label">Número de Ficha</label>
+                            <label className="form-label">{t('admin_manage_fichas.modal_number_label')}</label>
                             <input 
                                 type="text" 
                                 name="numero_ficha" 
@@ -798,7 +836,7 @@ export default function ManageFichasPage() {
                             />
                         </div>
                         <div className="form-group">
-                            <label className="form-label">Programa de Formación</label>
+                            <label className="form-label">{t('admin_manage_fichas.modal_program_label')}</label>
                             <input 
                                 type="text" 
                                 name="programa_formacion" 
@@ -808,7 +846,7 @@ export default function ManageFichasPage() {
                             />
                         </div>
                         <div className="form-group">
-                            <label className="form-label">Jornada</label>
+                            <label className="form-label">{t('admin_manage_fichas.modal_journey_label')}</label>
                             <input 
                                 type="text" 
                                 name="jornada" 
@@ -817,7 +855,7 @@ export default function ManageFichasPage() {
                             />
                         </div>
                         <div className="form-group">
-                            <label className="form-label">Instructores Asignados</label>
+                            <label className="form-label">{t('admin_manage_fichas.modal_instructors_label')}</label>
                             <select 
                                 multiple 
                                 name="instructor_ids" 
@@ -837,13 +875,13 @@ export default function ManageFichasPage() {
                                 onClick={() => setIsModalOpen(false)} 
                                 className="modern-button secondary-button"
                             >
-                                Cancelar
+                                {t('admin_manage_fichas.modal_cancel')}
                             </button>
                             <button 
                                 type="submit" 
                                 className="modern-button success-button"
                             >
-                                Guardar
+                                {t('admin_manage_fichas.modal_save')}
                             </button>
                         </div>
                     </form>

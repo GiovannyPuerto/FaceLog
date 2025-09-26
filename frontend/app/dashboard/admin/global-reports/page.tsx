@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../../../lib/api';
 import useAuth from '../../../../hooks/useAuth';
+import { useTranslation } from 'react-i18next'; // Added import
 
 const StatCard = ({ title, value, extra = null, gradient, icon }) => (
     <div
@@ -27,6 +28,7 @@ export default function GlobalReportsPage() {
     const [error, setError] = useState(null);
     const [fichas, setFichas] = useState([]);
     const [filters, setFilters] = useState({ date_from: '', date_to: '', ficha: '' });
+    const { t } = useTranslation('translation'); // Added useTranslation hook
 
     useEffect(() => {
         const fetchFilterData = async () => {
@@ -47,7 +49,7 @@ export default function GlobalReportsPage() {
             const response = await api.get('attendance/report/global/', { params: filters });
             setStats(response.data);
         } catch (err) {
-            setError("No se pudieron cargar los reportes globales.");
+            setError(t('global_reports_error_loading')); // Translated
         } finally {
             setLoading(false);
         }
@@ -491,28 +493,28 @@ export default function GlobalReportsPage() {
                 <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
                     <div className="page-header">
                         <h1 className="modern-title">
-                            Reportes Globales
+                            {t('global_reports_title')}
                         </h1>
                     </div>
 
                     <div className="filter-section">
                         <div className="filter-grid">
                             <div className="form-group">
-                                <label className="form-label">Ficha</label>
+                                <label className="form-label">{t('global_reports_ficha_label')}</label>
                                 <select 
                                     name="ficha" 
                                     value={filters.ficha} 
                                     onChange={handleFilterChange} 
                                     className="form-select"
                                 >
-                                    <option value="">Todas</option>
+                                    <option value="">{t('global_reports_all')}</option>
                                     {fichas.map(f => (
                                         <option key={f.id} value={f.id}>{f.numero_ficha}</option>
                                     ))}
                                 </select>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Desde</label>
+                                <label className="form-label">{t('global_reports_from_label')}</label>
                                 <input 
                                     type="date" 
                                     name="date_from" 
@@ -522,7 +524,7 @@ export default function GlobalReportsPage() {
                                 />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Hasta</label>
+                                <label className="form-label">{t('global_reports_to_label')}</label>
                                 <input 
                                     type="date" 
                                     name="date_to" 
@@ -533,7 +535,7 @@ export default function GlobalReportsPage() {
                             </div>
                             <div className="form-group">
                                 <button onClick={handleApplyFilters} className="modern-button">
-                                    Filtrar
+                                    {t('global_reports_filter_button')}
                                 </button>
                             </div>
                         </div>
@@ -542,7 +544,7 @@ export default function GlobalReportsPage() {
                     {loading ? (
                         <div className="loading-container">
                             <div className="loading-icon">⏳</div>
-                            <div className="loading-text">Cargando reportes...</div>
+                            <div className="loading-text">{t('global_reports_loading')}</div>
                         </div>
                     ) : error ? (
                         <div className="error-container">
@@ -553,37 +555,37 @@ export default function GlobalReportsPage() {
                         <div style={{ marginBottom: '3rem' }}>
                             <div className="stats-grid">
                                 <StatCard 
-                                    title="Total de Estudiantes" 
+                                    title={t('global_reports_total_students')} 
                                     value={stats.total_students || '0'} 
                                     gradient="var(--stat1-gradient)"
                                     icon="👥"
                                 />
                                 <StatCard 
-                                    title="Asistencias Totales" 
+                                    title={t('global_reports_total_attendances')} 
                                     value={stats.total_attendances || '0'} 
                                     gradient="var(--stat2-gradient)"
                                     icon="✅"
                                 />
                                 <StatCard 
-                                    title="Inasistencias Totales" 
+                                    title={t('global_reports_total_absences')} 
                                     value={stats.total_absences || '0'} 
                                     gradient="var(--stat5-gradient)"
                                     icon="❌"
                                 />
                                 <StatCard 
-                                    title="Promedio de Asistencia" 
+                                    title={t('global_reports_average_attendance')} 
                                     value={`${stats.average_attendance || '0'}%`} 
                                     gradient="var(--stat4-gradient)"
                                     icon="📊"
                                 />
                                 <StatCard 
-                                    title="Sesiones Realizadas" 
+                                    title={t('global_reports_total_sessions')} 
                                     value={stats.total_sessions || '0'} 
                                     gradient="var(--stat3-gradient)"
                                     icon="📅"
                                 />
                                 <StatCard 
-                                    title="Fichas Activas" 
+                                    title={t('global_reports_active_fichas')} 
                                     value={stats.active_fichas || '0'} 
                                     gradient="var(--stat1-gradient)"
                                     icon="📚"
@@ -595,7 +597,7 @@ export default function GlobalReportsPage() {
                                     onClick={handleDownloadPdf} 
                                     className="modern-button success-button"
                                 >
-                                    Descargar PDF del Reporte Actual
+                                    {t('global_reports_download_pdf')}
                                 </button>
                             </div>
                         </div>
